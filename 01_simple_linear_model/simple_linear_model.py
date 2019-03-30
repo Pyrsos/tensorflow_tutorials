@@ -4,7 +4,7 @@ import seaborn as sns
 import tensorflow as tf
 import numpy as np
 from sklearn.metrics import confusion_matrix
-from utilities import plot_images
+from utilities import plot_images, print_confusion_matrix
 from mnist import MNIST
 
 # Load MNIST dataset
@@ -80,7 +80,7 @@ session.run(tf.global_variables_initializer())
 
 # Training loop
 num_iterations = 10
-batch_size = 1000
+batch_size = 100
 for i in range(num_iterations):
     # Train
     x_batch, y_true_batch, _ = data.random_batch(batch_size=batch_size)
@@ -93,3 +93,5 @@ for i in range(num_iterations):
                       y_true_cls:data.y_test_cls}
     acc = session.run(accuracy, feed_dict=feed_dict_test)
     print("Accuracy on test set: {0:.1%}".format(acc))
+
+# print_confusion_matrix(data, session.run(y_pred_cls, feed_dict=feed_dict_test))
