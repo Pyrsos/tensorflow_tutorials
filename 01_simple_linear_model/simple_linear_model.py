@@ -73,6 +73,17 @@ class LogisticRegression():
 
         return accuracy
 
+    def return_predictions(self):
+        '''
+        Return predictions for the test set.
+        '''
+        feed_dict_test = {self._x: self._data.x_test,
+                            self._y_true: self._data.y_test,
+                            self._y_true_cls: self._data.y_test_cls}
+        predictions = self._session.run(self._y_pred_cls, feed_dict_test)
+
+        return predictions
+
     def return_weights(self):
         '''
         Return the weights in numpy matrix in order to visualize.
@@ -126,10 +137,16 @@ def main():
     # Call model
     model = LogisticRegression(data=data, batch_size=100, num_iterations=1000,
                                input_size=img_size_flat, output_layer_size=num_classes)
+    # Train the model
     model.train()
-
+    # Plot the weights
     weights = model.return_weights()
     plot_weights(weights, img_shape)
+    predictions = model.return_predictions()
+    # Print the confusion matrix
+    print_confusion_matrix(labels=data.y_test_cls,
+                           predictions=predictions,
+                           num_classes=num_classes)
 
 if __name__ == '__main__':
     main()

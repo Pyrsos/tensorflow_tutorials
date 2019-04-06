@@ -29,15 +29,10 @@ def plot_images(images, cls_true, img_shape, cls_pred=None):
 
     plt.show()
 
-def print_confusion_matrix(data, predictions):
-    # Define the true classes and number of classes
-    cls_true = data.y_test_cls
-    num_classes = data.num_classes
-    # Get the predicted classes
-    cls_pred = predictions
+def print_confusion_matrix(labels, predictions, num_classes):
     # Get the confusion_matrix
-    cm = confusion_matrix(y_true=cls_true,
-                          y_pred=cls_pred)
+    cm = confusion_matrix(y_true=labels,
+                          y_pred=predictions)
     plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
     # Plot adjustments
     plt.tight_layout()
