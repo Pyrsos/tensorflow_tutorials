@@ -1,5 +1,5 @@
 import tensorflow as tf
-from utilities import plot_images, print_confusion_matrix
+from utilities import plot_images, print_confusion_matrix, plot_weights
 from mnist import MNIST
 
 class LogisticRegression():
@@ -72,7 +72,20 @@ class LogisticRegression():
 
         return accuracy
 
+    def return_weights(self):
+        '''
+        Return the weights in numpy matrix in order to visualize.
+        '''
+        weights = self._session.run(self._weights)
+
+        return weights
+
     def train(self):
+        '''
+        Main train loop, going through random batches for training and
+        then validating on the entire test set. This is not optimal so 
+        will need some reworking.
+        '''
         for i in range(self._num_iterations):
             batch_x, batch_y, _ = self._data.random_batch(batch_size=self._batch_size)
             feed_dict_train = {self._x: batch_x, self._y_true: batch_y}
@@ -105,9 +118,12 @@ def main():
     num_classes = data.num_classes
 
     # Call model
-    model = LogisticRegression(data=data, batch_size=100, num_iterations=600,
+    model = LogisticRegression(data=data, batch_size=100, num_iterations=1000,
                                input_size=img_size_flat, output_layer_size=num_classes)
     model.train()
+
+    weights = model.return_weights()
+    plot_weights(weights, img_shape)
 
 if __name__ == '__main__':
     main()

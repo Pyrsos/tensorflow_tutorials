@@ -49,3 +49,27 @@ def print_confusion_matrix(data, predictions):
     plt.xlabel('True')
 
     plt.show()
+
+def plot_weights(weights, img_shape):
+    w_min = np.min(weights)
+    w_max = np.max(weights)
+
+    fig, axes = plt.subplots(3, 4)
+    fig.subplots_adjust(hspace=0.3, wspace=0.3)
+
+    for i, ax in enumerate(axes.flat):
+        # There are 12 sublplots but we only have 10 digits
+        if i < 10:
+            # Get the weights for each digit (i) and reshape them
+            # to match the original image shape (28, 28) instead of
+            # flattened image shape (784)
+            image = weights[:, i].reshape(img_shape)
+            # Set subplot label
+            ax.set_xlabel("Weights: {}".format(i))
+            # Plot image
+            ax.imshow(image, vmin=w_min, vmax=w_max, cmap='seismic')
+
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    plt.show()
