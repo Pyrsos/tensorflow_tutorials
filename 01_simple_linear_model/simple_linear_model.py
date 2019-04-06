@@ -20,7 +20,7 @@ class LogisticRegression():
         self._cost = self.__cost_calculation()
         self._accuracy = self.__accuracy_calculation()
 
-        self._optimizer = tf.train.AdamOptimizer(learning_rate=0.5).minimize(self._cost)
+        self._optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.5).minimize(self._cost)
 
         self._session = tf.Session()
         self._session.run(tf.global_variables_initializer())
@@ -29,11 +29,11 @@ class LogisticRegression():
         '''
         Tensorflow input graph definition.
         '''
-        x = tf.placeholder(tf.float32, [None, self._input_size])
+        features_x = tf.placeholder(tf.float32, [None, self._input_size])
         y_true = tf.placeholder(tf.float32, [None, self._output_layer_size])
         y_true_cls = tf.placeholder(tf.int64, [None])
 
-        return x, y_true, y_true_cls
+        return features_x, y_true, y_true_cls
 
     def __init_weights_and_bias(self):
         '''
@@ -58,7 +58,8 @@ class LogisticRegression():
         '''
         Calculate the loss of the system and use to further optimize.
         '''
-        cross_entropy = tf.losses.softmax_cross_entropy(onehot_labels=self._y_true, logits=self._logits)
+        cross_entropy = tf.losses.softmax_cross_entropy(onehot_labels=self._y_true,
+                                                        logits=self._logits)
         cost = tf.reduce_mean(cross_entropy)
 
         return cost
@@ -83,21 +84,26 @@ class LogisticRegression():
     def train(self):
         '''
         Main train loop, going through random batches for training and
-        then validating on the entire test set. This is not optimal so 
+        then validating on the entire test set. This is not optimal so
         will need some reworking.
         '''
         for i in range(self._num_iterations):
             batch_x, batch_y, _ = self._data.random_batch(batch_size=self._batch_size)
             feed_dict_train = {self._x: batch_x, self._y_true: batch_y}
             _, loss = self._session.run([self._optimizer, self._cost], feed_dict=feed_dict_train)
+
             feed_dict_test = {self._x: self._data.x_test,
                               self._y_true: self._data.y_test,
                               self._y_true_cls: self._data.y_test_cls}
 
             acc = self._session.run(self._accuracy, feed_dict=feed_dict_test)
-            print("Step: {}/{}, Loss: {:.2f}, Accuracy on test set: {:.2f}".format(i, self._num_iterations, loss, acc))
+            print("Step: {}/{}, Loss: {:.2f}, Accuracy on test set: {:.2f}".format(
+                i, self._num_iterations, loss, acc))
 
 def main():
+    '''
+    Main function to execute. Loading MNIST and training model.
+    '''
 
     # Load MNIST dataset
 
@@ -127,4 +133,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
