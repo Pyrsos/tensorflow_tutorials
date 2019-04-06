@@ -76,13 +76,13 @@ class LogisticRegression():
         for i in range(self._num_iterations):
             batch_x, batch_y, _ = self._data.random_batch(batch_size=self._batch_size)
             feed_dict_train = {self._x: batch_x, self._y_true: batch_y}
-            _ = self._session.run(self._optimizer, feed_dict=feed_dict_train)
+            _, loss = self._session.run([self._optimizer, self._cost], feed_dict=feed_dict_train)
             feed_dict_test = {self._x: self._data.x_test,
                               self._y_true: self._data.y_test,
                               self._y_true_cls: self._data.y_test_cls}
 
             acc = self._session.run(self._accuracy, feed_dict=feed_dict_test)
-            print("Accuracy on test set: {0:.1%}".format(acc))
+            print("Step: {}/{}, Loss: {:.2f}, Accuracy on test set: {:.2f}".format(i, self._num_iterations, loss, acc))
 
 def main():
 
@@ -105,7 +105,7 @@ def main():
     num_classes = data.num_classes
 
     # Call model
-    model = LogisticRegression(data=data, batch_size=128, num_iterations=6000,
+    model = LogisticRegression(data=data, batch_size=100, num_iterations=600,
                                input_size=img_size_flat, output_layer_size=num_classes)
     model.train()
 
