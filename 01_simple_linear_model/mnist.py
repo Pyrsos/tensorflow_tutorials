@@ -6,7 +6,7 @@ class MNIST:
     '''
     Load and configure the MNIST dataset for training.
     '''
-    def __init__(self, batch_size, normalize_data, 
+    def __init__(self, batch_size, normalize_data,
                  one_hot_encoding, flatten_images,
                  shuffle_per_epoch):
         self.train_x, self.train_y_cls, self.test_x, self.test_y_cls = self.__load_data()
@@ -32,9 +32,9 @@ class MNIST:
     def __iter__(self):
         self.__index = 0
         if self._shuffle_per_epoch:
-            self.train_x, self.train_y = shuffle(self.train_x, self.train_y) 
+            self.train_x, self.train_y = shuffle(self.train_x, self.train_y)
         self.chucked_train_x = np.array_split(self.train_x, self.n_train_batches)
-        self.chucked_test_x = np.array_split(self.train_y, self.n_train_batches) 
+        self.chucked_test_x = np.array_split(self.train_y, self.n_train_batches)
         return self
 
     def __next__(self):
@@ -44,7 +44,7 @@ class MNIST:
         batch_x, batch_y = self.chucked_train_x[self.__index], self.chucked_test_x[self.__index]
         self.__index += 1
 
-        return (batch_x, batch_y) 
+        return (batch_x, batch_y)
 
     def __len__(self):
         return self.n_train_batches
@@ -97,8 +97,9 @@ class MNIST:
         '''
         Flatten the images from [None, 28, 28] to [None, 784]
         '''
-        self.train_x = np.reshape(self.train_x, 
-                                 [self.train_x.shape[0], self.train_x.shape[1]*self.train_x.shape[2]])
-        self.test_x = np.reshape(self.test_x, 
-                                 [self.test_x.shape[0], self.test_x.shape[1]*self.test_x.shape[2]])
-
+        self.train_x = np.reshape(self.train_x,
+                                  [self.train_x.shape[0],
+                                   self.train_x.shape[1]*self.train_x.shape[2]])
+        self.test_x = np.reshape(self.test_x,
+                                 [self.test_x.shape[0],
+                                  self.test_x.shape[1]*self.test_x.shape[2]])
