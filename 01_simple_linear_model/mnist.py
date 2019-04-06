@@ -1,180 +1,104 @@
-########################################################################
-#
-# Downloads the MNIST data-set for recognizing hand-written digits.
-#
-# Implemented in Python 3.6
-#
-# Usage:
-# 1) Create a new object instance: data = MNIST(data_dir="data/MNIST/")
-#    This automatically downloads the files to the given dir.
-# 2) Use the training-set as data.x_train, data.y_train and data.y_train_cls
-# 3) Get random batches of training data using data.random_batch()
-# 4) Use the test-set as data.x_test, data.y_test and data.y_test_cls
-#
-########################################################################
-#
-# This file is part of the TensorFlow Tutorials available at:
-#
-# https://github.com/Hvass-Labs/TensorFlow-Tutorials
-#
-# Published under the MIT License. See the file LICENSE for details.
-#
-# Copyright 2016-18 by Magnus Erik Hvass Pedersen
-#
-########################################################################
-
+import tensorflow as tf
 import numpy as np
-import gzip
-import os
-from dataset import one_hot_encoded
-from download import download
-
-########################################################################
-
-# Base URL for downloading the data-files from the internet.
-base_url = "https://storage.googleapis.com/cvdf-datasets/mnist/"
-
-# Filenames for the data-set.
-filename_x_train = "train-images-idx3-ubyte.gz"
-filename_y_train = "train-labels-idx1-ubyte.gz"
-filename_x_test = "t10k-images-idx3-ubyte.gz"
-filename_y_test = "t10k-labels-idx1-ubyte.gz"
-
-########################################################################
-
+from sklearn.utils import shuffle
 
 class MNIST:
-    """
-    The MNIST data-set for recognizing hand-written digits.
-    This automatically downloads the data-files if they do
-    not already exist in the local data_dir.
-    Note: Pixel-values are floats between 0.0 and 1.0.
-    """
+    '''
+    Load and configure the MNIST dataset for training.
+    '''
+    def __init__(self, batch_size, normalize_data, 
+                 one_hot_encoding, flatten_images,
+                 shuffle_per_epoch):
+        self.train_x, self.train_y_cls, self.test_x, self.test_y_cls = self.__load_data()
+        self.train_y_cls = self.train_y_cls.astype(np.int64)
+        self.test_y_cls = self.test_y_cls.astype(np.int64)
+        self._batch_size = batch_size
+        self._shuffle_per_epoch = shuffle_per_epoch
+        self.n_train_batches = self.train_x.shape[0]//self._batch_size
+        self.n_test_batches = self.test_x.shape[0]//self._batch_size
 
-    # The images are 28 pixels in each dimension.
-    img_size = 28
+        self._normalize_data = normalize_data
+        if self._normalize_data:
+            self.__normalize_images()
 
-    # The images are stored in one-dimensional arrays of this length.
-    img_size_flat = img_size * img_size
+        self._flatten_images = flatten_images
+        if self._flatten_images:
+            self.__flatten_sets()
 
-    # Tuple with height and width of images used to reshape arrays.
-    img_shape = (img_size, img_size)
+        self._one_hot_encoding = one_hot_encoding
+        if self._one_hot_encoding:
+            self.train_y, self.test_y = self.__one_hot_encoding()
 
-    # Number of colour channels for the images: 1 channel for gray-scale.
-    num_channels = 1
+    def __iter__(self):
+        self.__index = 0
+        if self._shuffle_per_epoch:
+            self.train_x, self.train_y = shuffle(self.train_x, self.train_y) 
+        self.chucked_train_x = np.array_split(self.train_x, self.n_train_batches)
+        self.chucked_test_x = np.array_split(self.train_y, self.n_train_batches) 
+        return self
 
-    # Tuple with height, width and depth used to reshape arrays.
-    # This is used for reshaping in Keras.
-    img_shape_full = (img_size, img_size, num_channels)
+    def __next__(self):
+        if self.__index == len(self):
+            raise StopIteration()
 
-    # Number of classes, one class for each of 10 digits.
-    num_classes = 10
+        batch_x, batch_y = self.chucked_train_x[self.__index], self.chucked_test_x[self.__index]
+        self.__index += 1
 
-    def __init__(self, data_dir="data/MNIST/"):
-        """
-        Load the MNIST data-set. Automatically downloads the files
-        if they do not already exist locally.
-        :param data_dir: Base-directory for downloading files.
-        """
+        return (batch_x, batch_y) 
 
-        # Copy args to self.
-        self.data_dir = data_dir
+    def __len__(self):
+        return self.n_train_batches
 
-        # Number of images in each sub-set.
-        self.num_train = 55000
-        self.num_val = 5000
-        self.num_test = 10000
+    def return_num_classes(self):
+        '''
+        Return the number of classes present in the dataset.
+        '''
+        unique_labels = np.unique(self.test_y_cls)
+        num_classes = unique_labels.shape[0]
 
-        # Download / load the training-set.
-        x_train = self._load_images(filename=filename_x_train)
-        y_train_cls = self._load_cls(filename=filename_y_train)
+        return num_classes
 
-        # Split the training-set into train / validation.
-        # Pixel-values are converted from ints between 0 and 255
-        # to floats between 0.0 and 1.0.
-        self.x_train = x_train[0:self.num_train] / 255.0
-        self.x_val = x_train[self.num_train:] / 255.0
-        self.y_train_cls = y_train_cls[0:self.num_train]
-        self.y_val_cls = y_train_cls[self.num_train:]
+    def return_input_shape(self):
+        '''
+        Return the shape of the dataset dimensions.
+        '''
+        random_sample = self.test_x[0]
+        input_dimensions_shape = random_sample.shape[0]
 
-        # Download / load the test-set.
-        self.x_test = self._load_images(filename=filename_x_test) / 255.0
-        self.y_test_cls = self._load_cls(filename=filename_y_test)
+        return input_dimensions_shape
 
-        # Convert the class-numbers from bytes to ints as that is needed
-        # some places in TensorFlow.
-        self.y_train_cls = self.y_train_cls.astype(np.int)
-        self.y_val_cls = self.y_val_cls.astype(np.int)
-        self.y_test_cls = self.y_test_cls.astype(np.int)
+    def __load_data(self):
+        '''
+        Load the MNIST dataset.
+        '''
+        train_set, test_set = tf.keras.datasets.mnist.load_data()
+        train_x, train_y = train_set
+        test_x, test_y = test_set
 
-        # Convert the integer class-numbers into one-hot encoded arrays.
-        self.y_train = one_hot_encoded(class_numbers=self.y_train_cls,
-                                       num_classes=self.num_classes)
-        self.y_val = one_hot_encoded(class_numbers=self.y_val_cls,
-                                     num_classes=self.num_classes)
-        self.y_test = one_hot_encoded(class_numbers=self.y_test_cls,
-                                      num_classes=self.num_classes)
+        return train_x, train_y, test_x, test_y
 
-    def _load_data(self, filename, offset):
-        """
-        Load the data in the given file. Automatically downloads the file
-        if it does not already exist in the data_dir.
-        :param filename: Name of the data-file.
-        :param offset: Start offset in bytes when reading the data-file.
-        :return: The data as a numpy array.
-        """
+    def __normalize_images(self):
+        '''
+        Normalize the image pixels to facilitate training.
+        '''
+        self.train_x = self.train_x/255
+        self.test_x = self.test_x/255
 
-        # Download the file from the internet if it does not exist locally.
-        download(base_url=base_url, filename=filename, download_dir=self.data_dir)
+    def __one_hot_encoding(self):
+        '''
+        Retrieve the one_hot encodings from int labels.
+        '''
+        train_y = tf.keras.utils.to_categorical(self.train_y_cls)
+        test_y = tf.keras.utils.to_categorical(self.test_y_cls)
 
-        # Read the data-file.
-        path = os.path.join(self.data_dir, filename)
-        with gzip.open(path, 'rb') as f:
-            data = np.frombuffer(f.read(), np.uint8, offset=offset)
+        return train_y, test_y
 
-        return data
+    def __flatten_sets(self):
+        '''
+        Flatten the images from [None, 28, 28] to [None, 784]
+        '''
+        self.train_x = np.reshape(self.train_x, 
+                                 [self.train_x.shape[0], self.train_x.shape[1]*self.train_x.shape[2]])
+        self.test_x = np.reshape(self.test_x, 
+                                 [self.test_x.shape[0], self.test_x.shape[1]*self.test_x.shape[2]])
 
-    def _load_images(self, filename):
-        """
-        Load image-data from the given file.
-        Automatically downloads the file if it does not exist locally.
-        :param filename: Name of the data-file.
-        :return: Numpy array.
-        """
-
-        # Read the data as one long array of bytes.
-        data = self._load_data(filename=filename, offset=16)
-
-        # Reshape to 2-dim array with shape (num_images, img_size_flat).
-        images_flat = data.reshape(-1, self.img_size_flat)
-
-        return images_flat
-
-    def _load_cls(self, filename):
-        """
-        Load class-numbers from the given file.
-        Automatically downloads the file if it does not exist locally.
-        :param filename: Name of the data-file.
-        :return: Numpy array.
-        """
-        return self._load_data(filename=filename, offset=8)
-
-    def random_batch(self, batch_size=32):
-        """
-        Create a random batch of training-data.
-        :param batch_size: Number of images in the batch.
-        :return: 3 numpy arrays (x, y, y_cls)
-        """
-
-        # Create a random index into the training-set.
-        idx = np.random.randint(low=0, high=self.num_train, size=batch_size)
-
-        # Use the index to lookup random training-data.
-        x_batch = self.x_train[idx]
-        y_batch = self.y_train[idx]
-        y_batch_cls = self.y_train_cls[idx]
-
-        return x_batch, y_batch, y_batch_cls
-
-
-########################################################################

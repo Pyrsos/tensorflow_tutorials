@@ -6,9 +6,8 @@ class LogisticRegression():
     '''
     Logistic Regression class.
     '''
-    def __init__(self, data, batch_size, num_iterations,
+    def __init__(self, batch_size, num_iterations,
                  input_size, output_layer_size):
-        self._data = data
         self._batch_size = batch_size
         self._num_iterations = num_iterations
         self._input_size = input_size
@@ -73,13 +72,13 @@ class LogisticRegression():
 
         return accuracy
 
-    def return_predictions(self):
+    def return_predictions(self, test_x, test_y, test_y_cls):
         '''
         Return predictions for the test set.
         '''
-        feed_dict_test = {self._x: self._data.x_test,
-                            self._y_true: self._data.y_test,
-                            self._y_true_cls: self._data.y_test_cls}
+        feed_dict_test = {self._x: test_x,
+                          self._y_true: test_y,
+                          self._y_true_cls: test_y_cls}
         predictions = self._session.run(self._y_pred_cls, feed_dict_test)
 
         return predictions
@@ -92,24 +91,30 @@ class LogisticRegression():
 
         return weights
 
-    def train(self):
+    def train_step(self, batch_x, batch_y):
         '''
-        Main train loop, going through random batches for training and
-        then validating on the entire test set. This is not optimal so
-        will need some reworking.
+        Single train step, given a batch of features and labels.
+        A loop can then be used to iterate over this function multiple
+        times to train the system.
         '''
-        for i in range(self._num_iterations):
-            batch_x, batch_y, _ = self._data.random_batch(batch_size=self._batch_size)
-            feed_dict_train = {self._x: batch_x, self._y_true: batch_y}
-            _, loss = self._session.run([self._optimizer, self._cost], feed_dict=feed_dict_train)
+        feed_dict_train = {self._x: batch_x, self._y_true: batch_y}
+        _, loss = self._session.run([self._optimizer, self._cost], feed_dict=feed_dict_train)
 
-            feed_dict_test = {self._x: self._data.x_test,
-                              self._y_true: self._data.y_test,
-                              self._y_true_cls: self._data.y_test_cls}
+        return loss
 
-            acc = self._session.run(self._accuracy, feed_dict=feed_dict_test)
-            print("Step: {}/{}, Loss: {:.2f}, Accuracy on test set: {:.2f}".format(
-                i, self._num_iterations, loss, acc))
+    def validation_cycle(self, test_x, test_y, test_y_cls):
+        '''
+        Feed the entire set to the system in order to validate the
+        response. This is not optimal as the validation set should be
+        ideally passed in batches. 
+        '''
+        feed_dict_test = {self._x: test_x,
+                          self._y_true: test_y,
+                          self._y_true_cls: test_y_cls}
+
+        acc = self._session.run(self._accuracy, feed_dict=feed_dict_test)
+
+        return acc
 
 def main():
     '''
@@ -117,36 +122,29 @@ def main():
     '''
 
     # Load MNIST dataset
+    mnist = MNIST(batch_size=100, normalize_data=True,
+                  one_hot_encoding=True, flatten_images=True,
+                  shuffle_per_epoch=True)
 
-    data = MNIST(data_dir="data/MNIST/")
-
-    # Print some information regarding the mnist
-
-    print("Size of:")
-    print("- Training-set:\t\t{}".format(data.num_train))
-    print("- Validation-set:\t{}".format(data.num_val))
-    print("- Test-set:\t{}".format(data.num_test))
-
-    # Tuple with image dimensions
-    img_size_flat = data.img_size_flat
-    # Size of image when flatten (28 x 28 = 784)
-    img_shape = data.img_shape
-    # Number of classes
-    num_classes = data.num_classes
+    epochs = 100
+    img_size_flat = mnist.return_input_shape()
+    num_classes = mnist.return_num_classes() 
 
     # Call model
-    model = LogisticRegression(data=data, batch_size=100, num_iterations=1000,
+    model = LogisticRegression(batch_size=100, num_iterations=1000,
                                input_size=img_size_flat, output_layer_size=num_classes)
-    # Train the model
-    model.train()
-    # Plot the weights
-    weights = model.return_weights()
-    plot_weights(weights, img_shape)
-    predictions = model.return_predictions()
-    # Print the confusion matrix
-    print_confusion_matrix(labels=data.y_test_cls,
-                           predictions=predictions,
-                           num_classes=num_classes)
+
+
+    # Main train loop to iterate over epochs and then
+    # over batches. Once per epoch we validate the system's
+    # accuracy on the test set.
+    for i in range(1, epochs+1):
+        for j, (batch_x, batch_y) in enumerate(mnist):
+            loss = model.train_step(batch_x, batch_y)
+            print("Epoch {}/{}, Batch: {}/{} with Loss: {}".format(
+                i, epochs, j, len(mnist), loss))
+        acc = model.validation_cycle(mnist.test_x, mnist.test_y, mnist.test_y_cls)
+        print("Epoch {}/{}, Accuracy: {}".format(i, epochs, acc))
 
 if __name__ == '__main__':
     main()
