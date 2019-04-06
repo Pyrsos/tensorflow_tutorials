@@ -1,5 +1,5 @@
 import tensorflow as tf
-from utilities import plot_images, print_confusion_matrix, plot_weights
+from utilities import print_confusion_matrix, plot_weights
 from mnist import MNIST
 
 class LogisticRegression():
@@ -106,7 +106,7 @@ class LogisticRegression():
         '''
         Feed the entire set to the system in order to validate the
         response. This is not optimal as the validation set should be
-        ideally passed in batches. 
+        ideally passed in batches.
         '''
         feed_dict_test = {self._x: test_x,
                           self._y_true: test_y,
@@ -128,7 +128,7 @@ def main():
 
     epochs = 100
     img_size_flat = mnist.return_input_shape()
-    num_classes = mnist.return_num_classes() 
+    num_classes = mnist.return_num_classes()
 
     # Call model
     model = LogisticRegression(batch_size=100, num_iterations=1000,
@@ -146,5 +146,15 @@ def main():
         acc = model.validation_cycle(mnist.test_x, mnist.test_y, mnist.test_y_cls)
         print("Epoch {}/{}, Accuracy: {}".format(i, epochs, acc))
 
+    # Plot weights
+    weights = model.return_weights()
+    plot_weights(weights, (28, 28))
+    # Plot confusion matrix
+    predictions = model.return_predictions(test_x=mnist.test_x,
+                                           test_y=mnist.test_y,
+                                           test_y_cls=mnist.test_y_cls)
+    print_confusion_matrix(labels=mnist.test_y_cls,
+                           predictions=predictions,
+                           num_classes=num_classes)
 if __name__ == '__main__':
     main()
