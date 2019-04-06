@@ -1,97 +1,114 @@
-import matplotlib
-matplotlib.use('TkAgg')
-import seaborn as sns
 import tensorflow as tf
-import numpy as np
-from sklearn.metrics import confusion_matrix
 from utilities import plot_images, print_confusion_matrix
 from mnist import MNIST
 
-# Load MNIST dataset
+class LogisticRegression():
+    '''
+    Logistic Regression class.
+    '''
+    def __init__(self, data, batch_size, num_iterations,
+                 input_size, output_layer_size):
+        self._data = data
+        self._batch_size = batch_size
+        self._num_iterations = num_iterations
+        self._input_size = input_size
+        self._output_layer_size = output_layer_size
 
-data = MNIST(data_dir="data/MNIST/")
+        self._x, self._y_true, self._y_true_cls = self.__model_input()
+        self._weights, self._biases, self._logits = self.__init_weights_and_bias()
+        self._y_pred, self._y_pred_cls = self.__model_output()
+        self._cost = self.__cost_calculation()
+        self._accuracy = self.__accuracy_calculation()
 
-# Print some information regarding the mnist
+        self._optimizer = tf.train.AdamOptimizer(learning_rate=0.5).minimize(self._cost)
 
-print("Size of:")
-print("- Training-set:\t\t{}".format(data.num_train))
-print("- Validation-set:\t{}".format(data.num_val))
-print("- Test-set:\t{}".format(data.num_test))
+        self._session = tf.Session()
+        self._session.run(tf.global_variables_initializer())
 
-# Tuple with image dimensions
-img_size_flat = data.img_size_flat
-# Size of image when flatten (28 x 28 = 784)
-img_shape = data.img_shape
-# Number of classes
-num_classes = data.num_classes
+    def __model_input(self):
+        '''
+        Tensorflow input graph definition.
+        '''
+        x = tf.placeholder(tf.float32, [None, self._input_size])
+        y_true = tf.placeholder(tf.float32, [None, self._output_layer_size])
+        y_true_cls = tf.placeholder(tf.int64, [None])
 
-# Define tensorflow graph.
+        return x, y_true, y_true_cls
 
-# First define the input placeholder for features
-# (in this case images) and labels (one-hot for y_true
-# and labels y_true_cls).
+    def __init_weights_and_bias(self):
+        '''
+        Initialise the weights and bias matrices and calculate the logits
+        '''
+        weights = tf.Variable(tf.zeros([self._input_size, self._output_layer_size]))
+        biases = tf.Variable(tf.zeros([self._output_layer_size]))
+        logits = tf.matmul(self._x, weights) + biases
 
-x = tf.placeholder(tf.float32, [None, img_size_flat])
-y_true = tf.placeholder(tf.float32, [None, num_classes])
-y_true_cls = tf.placeholder(tf.int64, [None])
+        return weights, biases, logits
 
-# This is a simple implementation of logistic regression
-# so we can easily define our own weights and biases.
+    def __model_output(self):
+        '''
+        Logits activation and class prediction.
+        '''
+        y_pred = tf.nn.softmax(self._logits)
+        y_pred_cls = tf.argmax(y_pred, axis=1)
 
-weights = tf.Variable(tf.zeros([img_size_flat, num_classes]))
-biases = tf.Variable(tf.zeros([num_classes]))
+        return y_pred, y_pred_cls
 
-# Define the output of the computation. In this case it will
-# simply be the (input x weights) +  bias .
+    def __cost_calculation(self):
+        '''
+        Calculate the loss of the system and use to further optimize.
+        '''
+        cross_entropy = tf.losses.softmax_cross_entropy(onehot_labels=self._y_true, logits=self._logits)
+        cost = tf.reduce_mean(cross_entropy)
 
-logits = tf.matmul(x, weights) + biases
+        return cost
 
-# Then we need to activate our logits, and this is done by
-# applying a softmax function over them.
+    def __accuracy_calculation(self):
+        '''
+        Calculate the accuracy of the system to gauge its performance.
+        '''
+        correct_prediction = tf.equal(self._y_pred_cls, self._y_true_cls)
+        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-y_pred = tf.nn.softmax(logits)
+        return accuracy
 
-# As the predictions are in one-hot encoding, we can transform
-# these easily using an argmax function, to get the predicted label.
+    def train(self):
+        for i in range(self._num_iterations):
+            batch_x, batch_y, _ = self._data.random_batch(batch_size=self._batch_size)
+            feed_dict_train = {self._x: batch_x, self._y_true: batch_y}
+            _ = self._session.run(self._optimizer, feed_dict=feed_dict_train)
+            feed_dict_test = {self._x: self._data.x_test,
+                              self._y_true: self._data.y_test,
+                              self._y_true_cls: self._data.y_test_cls}
 
-y_pred_cls = tf.argmax(y_pred, axis=1)
+            acc = self._session.run(self._accuracy, feed_dict=feed_dict_test)
+            print("Accuracy on test set: {0:.1%}".format(acc))
 
-# Define cost and optimizations methods.
+def main():
 
-# First we need to define the cost function that
-# we want to minimize. In this case we will use the cross entropy.
+    # Load MNIST dataset
 
-cross_entropy = tf.losses.softmax_cross_entropy(onehot_labels=y_true, logits=logits)
-cost = tf.reduce_mean(cross_entropy)
+    data = MNIST(data_dir="data/MNIST/")
 
-# Then we define an optmization method. In this case we use standard
-# gradient descent.
+    # Print some information regarding the mnist
 
-optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.5).minimize(cost)
+    print("Size of:")
+    print("- Training-set:\t\t{}".format(data.num_train))
+    print("- Validation-set:\t{}".format(data.num_val))
+    print("- Test-set:\t{}".format(data.num_test))
 
-# Define performance metrics to measure the model's response
-# In this case we will just check the accuracy of the classification
-correct_prediction = tf.equal(y_pred_cls, y_true_cls)
-accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    # Tuple with image dimensions
+    img_size_flat = data.img_size_flat
+    # Size of image when flatten (28 x 28 = 784)
+    img_shape = data.img_shape
+    # Number of classes
+    num_classes = data.num_classes
 
-# Run the graph
-session = tf.Session()
-session.run(tf.global_variables_initializer())
+    # Call model
+    model = LogisticRegression(data=data, batch_size=128, num_iterations=6000,
+                               input_size=img_size_flat, output_layer_size=num_classes)
+    model.train()
 
-# Training loop
-num_iterations = 10
-batch_size = 100
-for i in range(num_iterations):
-    # Train
-    x_batch, y_true_batch, _ = data.random_batch(batch_size=batch_size)
-    feed_dict_train = {x: x_batch,
-                 y_true: y_true_batch}
-    _ = session.run(optimizer, feed_dict=feed_dict_train)
-    # Test
-    feed_dict_test = {x:data.x_test,
-                      y_true: data.y_test,
-                      y_true_cls:data.y_test_cls}
-    acc = session.run(accuracy, feed_dict=feed_dict_test)
-    print("Accuracy on test set: {0:.1%}".format(acc))
+if __name__ == '__main__':
+    main()
 
-# print_confusion_matrix(data, session.run(y_pred_cls, feed_dict=feed_dict_test))
