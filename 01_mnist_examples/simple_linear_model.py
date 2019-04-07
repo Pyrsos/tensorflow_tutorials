@@ -1,5 +1,5 @@
 import tensorflow as tf
-from utilities import print_confusion_matrix, plot_weights
+from utilities import print_confusion_matrix, plot_weights, find_wrong_predictions, plot_images
 from mnist import MNIST
 
 class LogisticRegression():
@@ -19,7 +19,7 @@ class LogisticRegression():
         self._cost = self.__cost_calculation()
         self._accuracy = self.__accuracy_calculation()
 
-        self._optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.5).minimize(self._cost)
+        self._optimizer = tf.train.AdamOptimizer(learning_rate=0.01).minimize(self._cost)
 
         self._session = tf.Session()
         self._session.run(tf.global_variables_initializer())
@@ -71,6 +71,16 @@ class LogisticRegression():
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
         return accuracy
+
+    def return_logits(self, data):
+        '''
+        Return the logits values in order to visualize predictions "confidence".
+        '''
+        feed_dict = {self._x: data}
+        logits, y_pred = self._session.run([self._logits, self._y_pred],
+                                           feed_dict=feed_dict)
+
+        return logits, y_pred
 
     def return_predictions(self, test_x, test_y, test_y_cls):
         '''
@@ -126,7 +136,8 @@ def main():
                   one_hot_encoding=True, flatten_images=True,
                   shuffle_per_epoch=True)
 
-    epochs = 100
+    epochs = 1
+    original_image_shape = mnist.original_image_shape
     img_size_flat = mnist.return_input_shape()
     num_classes = mnist.return_num_classes()
 
@@ -148,7 +159,7 @@ def main():
 
     # Plot weights
     weights = model.return_weights()
-    plot_weights(weights, (28, 28))
+    plot_weights(weights, original_image_shape)
     # Plot confusion matrix
     predictions = model.return_predictions(test_x=mnist.test_x,
                                            test_y=mnist.test_y,
@@ -156,5 +167,11 @@ def main():
     print_confusion_matrix(labels=mnist.test_y_cls,
                            predictions=predictions,
                            num_classes=num_classes)
+    wrong_images, wrong_labels, correct_labels = find_wrong_predictions(labels=mnist.test_y_cls,
+                                                                        predictions=predictions,
+                                                                        images=mnist.test_x)
+    plot_images(wrong_images[:9], correct_labels[:9],
+                original_image_shape, cls_pred=wrong_labels[:9])
+
 if __name__ == '__main__':
     main()

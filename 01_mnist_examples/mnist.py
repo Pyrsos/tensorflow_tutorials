@@ -16,6 +16,7 @@ class MNIST:
         self._shuffle_per_epoch = shuffle_per_epoch
         self.n_train_batches = self.train_x.shape[0]//self._batch_size
         self.n_test_batches = self.test_x.shape[0]//self._batch_size
+        self.original_image_shape = self.return_original_image_shape()
 
         self._normalize_data = normalize_data
         if self._normalize_data:
@@ -57,6 +58,14 @@ class MNIST:
         num_classes = unique_labels.shape[0]
 
         return num_classes
+
+    def return_original_image_shape(self):
+        '''
+        Return the original shape of the MNIST images.
+        '''
+        random_sample = self.test_x[0]
+
+        return (random_sample.shape[0], random_sample.shape[1])
 
     def return_input_shape(self):
         '''
