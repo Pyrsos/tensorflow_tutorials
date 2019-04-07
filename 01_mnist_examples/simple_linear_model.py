@@ -167,11 +167,13 @@ def main():
     print_confusion_matrix(labels=mnist.test_y_cls,
                            predictions=predictions,
                            num_classes=num_classes)
+    # Plot images that are classified incorrectly
     wrong_images, wrong_labels, correct_labels = find_wrong_predictions(labels=mnist.test_y_cls,
                                                                         predictions=predictions,
                                                                         images=mnist.test_x)
-    plot_images(wrong_images[:9], correct_labels[:9],
-                original_image_shape, cls_pred=wrong_labels[:9])
-
+    logits, y_pred = model.return_logits(data=wrong_images)
+    plot_images(images=wrong_images[:5], y_pred=y_pred[:5], logits=logits[:5],
+                cls_true=correct_labels[:5], cls_pred=wrong_labels[:5],
+                img_shape=original_image_shape)
 if __name__ == '__main__':
     main()

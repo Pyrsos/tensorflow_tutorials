@@ -17,28 +17,33 @@ def find_wrong_predictions(labels, predictions, images):
 
     return wrong_images, wrong_labels, correct_labels
 
-def plot_images(images, cls_true, img_shape, cls_pred=None):
+def plot_images(images, y_pred, logits, cls_true, cls_pred, img_shape):
     '''
     Plot some of the images from the dataset.
     '''
     # Create figure with 3x3 sub-plots
-    fig, axes = plt.subplots(3, 3)
-    fig.subplots_adjust(hspace=0.3, wspace=0.3)
-
-    for i, axes in enumerate(axes.flat):
+    fig, axes = plt.subplots(images.shape[0], 3)
+    fig.subplots_adjust(hspace=0.5, wspace=0.5)
+    # First print the images
+    for i, subfig in enumerate(axes[:, 0]):
         # Plot image
-        axes.imshow(images[i].reshape(img_shape), cmap='binary')
+        subfig.imshow(images[i].reshape(img_shape), cmap='binary', aspect='auto')
         # Show true and predicted classes
-        if cls_pred is None:
-            xlabel = "True: {}".format(cls_true[i])
-        else:
-            xlabel = "True: {}, Pred: {}".format(cls_true[i], cls_pred[i])
-
-        axes.set_xlabel(xlabel)
-
+        xlabel = "True: {}, Pred: {}".format(cls_true[i], cls_pred[i])
+        subfig.set_xlabel(xlabel)
         # Remove ticks from the plot
-        axes.set_xticks([])
-        axes.set_yticks([])
+        subfig.set_xticks([])
+        subfig.set_yticks([])
+    # Then print the logits
+    for i, subfig in enumerate(axes[:, 1]):
+        subfig.bar(np.arange(10), y_pred[i])
+        subfig.set_xticks(np.arange(10))
+        subfig.set_yticks([])
+
+    for i, subfig in enumerate(axes[:, 2]):
+        subfig.bar(np.arange(10), logits[i])
+        subfig.set_xticks(np.arange(10))
+        subfig.set_yticks([])
 
     plt.show()
 
