@@ -24,6 +24,7 @@ def plot_images(images, y_pred, logits, cls_true, cls_pred, img_shape):
     # Create figure with 3x3 sub-plots
     fig, axes = plt.subplots(images.shape[0], 3)
     fig.subplots_adjust(hspace=0.5, wspace=0.5)
+    bar_colors = ['b', 'r', 'g', 'm', 'c', 'y', 'k', 'b', 'r', 'g']
     # First print the images
     for i, subfig in enumerate(axes[:, 0]):
         # Plot image
@@ -36,12 +37,12 @@ def plot_images(images, y_pred, logits, cls_true, cls_pred, img_shape):
         subfig.set_yticks([])
     # Then print the logits
     for i, subfig in enumerate(axes[:, 1]):
-        subfig.bar(np.arange(10), y_pred[i])
+        subfig.bar(np.arange(10), y_pred[i], color=bar_colors)
         subfig.set_xticks(np.arange(10))
         subfig.set_yticks([])
 
     for i, subfig in enumerate(axes[:, 2]):
-        subfig.bar(np.arange(10), logits[i])
+        subfig.bar(np.arange(10), logits[i], color=bar_colors)
         subfig.set_xticks(np.arange(10))
         subfig.set_yticks([])
 
