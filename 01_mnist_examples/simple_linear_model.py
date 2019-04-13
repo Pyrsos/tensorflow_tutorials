@@ -1,4 +1,5 @@
 import tensorflow as tf
+from tqdm import tqdm, trange
 from utilities import print_confusion_matrix, plot_weights, find_wrong_predictions, plot_images
 from mnist import MNIST
 
@@ -136,7 +137,7 @@ def main():
                   one_hot_encoding=True, flatten_images=True,
                   shuffle_per_epoch=True)
 
-    epochs = 1
+    epochs = 100
     original_image_shape = mnist.original_image_shape
     img_size_flat = mnist.return_input_shape()
     num_classes = mnist.return_num_classes()
@@ -149,13 +150,20 @@ def main():
     # Main train loop to iterate over epochs and then
     # over batches. Once per epoch we validate the system's
     # accuracy on the test set.
-    for i in range(1, epochs+1):
-        for j, (batch_x, batch_y) in enumerate(mnist):
-            loss = model.train_step(batch_x, batch_y)
-            print("Epoch {}/{}, Batch: {}/{} with Loss: {}".format(
-                i, epochs, j, len(mnist), loss))
-        acc = model.validation_cycle(mnist.test_x, mnist.test_y, mnist.test_y_cls)
-        print("Epoch {}/{}, Accuracy: {}".format(i, epochs, acc))
+    # Predefine loss and acc for printing
+    loss = 0
+    acc = 0
+    with tqdm(total=epochs, postfix='Accuracy = {:.3f}'.format(acc)) as epoch_progress:
+        for epoch in range(epochs):
+            with tqdm(total=len(mnist), postfix='Loss: {:.3f}'.format(loss), 
+                      mininterval=1e-4, leave=True) as batch_progress:
+                for batch, (batch_x, batch_y) in enumerate(mnist):
+                    loss = model.train_step(batch_x, batch_y)
+                    batch_progress.set_postfix(Loss = loss)
+                    batch_progress.update()
+                acc = model.validation_cycle(mnist.test_x, mnist.test_y, mnist.test_y_cls)
+                epoch_progress.set_postfix(Accuracy = acc)
+                epoch_progress.update()
 
     # Plot weights
     weights = model.return_weights()
