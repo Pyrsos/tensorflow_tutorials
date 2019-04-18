@@ -124,7 +124,6 @@ cross_entropy = tf.losses.softmax_cross_entropy(onehot_labels=y_true,
                                                 logits=layer_fc2)
 cost = tf.reduce_mean(cross_entropy)
 
-import ipdb; ipdb.set_trace()
 # Optimizer
 optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(cost)
 
