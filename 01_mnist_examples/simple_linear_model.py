@@ -137,7 +137,7 @@ def main():
                   one_hot_encoding=True, flatten_images=True,
                   shuffle_per_epoch=True)
 
-    epochs = 100
+    epochs = 1
     original_image_shape = mnist.original_image_shape
     img_size_flat = mnist.return_input_shape()
     num_classes = mnist.return_num_classes()
