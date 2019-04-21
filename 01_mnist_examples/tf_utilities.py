@@ -17,8 +17,8 @@ class Conv2DLayer():
     Simple class for defining convolutional layers.
     '''
     def __init__(self, input_data, num_input_channels,
-                filter_size, num_filters, strides=[1, 1, 1, 1],
-                padding = 'SAME', use_pooling=True):
+                 filter_size, num_filters, strides=[1, 1, 1, 1],
+                 padding='SAME', use_pooling=True):
         # Define class variables
         self._input = input_data
         self._shape = [filter_size, filter_size, num_input_channels, num_filters]
@@ -123,7 +123,7 @@ class FlattenLayer():
     def __init__(self, input_layer):
         self._input = input_layer
         self._input_shape = self._input.get_shape()
-        self._num_features = self._input_shape[1:4].num_elements()
+        self.num_features = self._input_shape[1:].num_elements()
 
         self.output_layer = self.__flatten_layer()
 
@@ -131,6 +131,6 @@ class FlattenLayer():
         '''
         Flatten and return the input layer.
         '''
-        layer_flat = tf.reshape(self._input, [-1, self._num_features])
+        layer_flat = tf.reshape(self._input, [-1, self.num_features])
 
         return layer_flat
