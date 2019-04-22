@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tqdm import tqdm, trange
-from utilities import print_confusion_matrix, plot_weights, find_wrong_predictions, plot_images
-from mnist import MNIST
+from utilities.plot_utilities import print_confusion_matrix, plot_weights, find_wrong_predictions, plot_images
+from dataset_utilities.mnist import MNIST
 
 class LogisticRegression():
     '''
