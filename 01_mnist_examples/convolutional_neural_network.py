@@ -2,7 +2,7 @@ from absl import flags
 import tensorflow as tf
 from tqdm import tqdm
 from mnist import MNIST
-from tf_utilities import Conv2DLayer, MaxPoolLayer, DenseLayer, FlattenLayer
+from utilities.tf_utilities import Conv2DLayer, MaxPoolLayer, DenseLayer, FlattenLayer
 
 flags.DEFINE_integer("filter_size_1", 5, help="Size of the filters for the first conv layer")
 flags.DEFINE_integer("num_filters_1", 16, help="Number of filters in first conv layer")
