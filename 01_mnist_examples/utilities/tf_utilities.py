@@ -1,3 +1,6 @@
+'''
+Helper classes and functions for tensorflow operations.
+'''
 import tensorflow as tf
 
 def get_layer_output(session, graph_input, input_data, layer):
@@ -71,7 +74,7 @@ class MaxPoolLayer():
     '''
     Simple class for defining max pooling layers.
     '''
-    def __init__(self, input_layer, ksize=[1, 2, 2, 1], 
+    def __init__(self, input_layer, ksize=[1, 2, 2, 1],
                  strides=[1, 2, 2, 1], padding='SAME',
                  activation=tf.nn.relu):
         self._input = input_layer

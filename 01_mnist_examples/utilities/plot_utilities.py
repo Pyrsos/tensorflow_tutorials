@@ -1,3 +1,7 @@
+'''
+Helper functions for plotting aspects of the learning
+process.
+'''
 import matplotlib
 import numpy as np
 from sklearn.metrics import confusion_matrix
