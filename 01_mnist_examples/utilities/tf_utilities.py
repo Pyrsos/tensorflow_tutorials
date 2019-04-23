@@ -42,7 +42,7 @@ class Conv2DLayer():
         self._strides = strides
         self._padding = padding
         # Get weights, biases and build conv layer
-        self._weights = new_weights(shape=self._shape)
+        self.weights = new_weights(shape=self._shape)
         self._biases = new_biases(length=num_filters)
         self._layer = self.__build_convolutional_layer()
         self.output_layer = self.__get_layer_output()
@@ -53,7 +53,7 @@ class Conv2DLayer():
         the layer values.
         '''
         layer = tf.nn.conv2d(input=self._input,
-                             filter=self._weights,
+                             filter=self.weights,
                              strides=self._strides,
                              padding=self._padding)
         return layer
@@ -112,7 +112,7 @@ class DenseLayer():
                  activation=tf.nn.relu):
         self._input = input_data
         self._activation = activation
-        self._weights = new_weights(shape=[num_inputs, num_outputs])
+        self.weights = new_weights(shape=[num_inputs, num_outputs])
         self._biases = new_biases(length=num_outputs)
         self.pre_activation_layer = self.__build_dense_layer()
         self.output_layer = self.__activate_layer()
@@ -121,7 +121,7 @@ class DenseLayer():
         '''
         Construct the dense layer.
         '''
-        layer = tf.matmul(self._input, self._weights) + self._biases
+        layer = tf.matmul(self._input, self.weights) + self._biases
 
         return layer
 

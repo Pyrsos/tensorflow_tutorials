@@ -1,7 +1,12 @@
+'''
+Example script for constructing a simple logistic regression model for
+classifying the MNIST dataset.
+'''
 from absl import flags
 import tensorflow as tf
 from tqdm import tqdm
-from utilities.plot_utilities import print_confusion_matrix, plot_weights, find_wrong_predictions, plot_images
+from utilities.plot_utilities import (print_confusion_matrix, plot_weights,
+                                      find_wrong_predictions, plot_images)
 from dataset_utilities.mnist import MNIST
 
 flags.DEFINE_integer("batch_size", 100, help="Batch size")
@@ -27,7 +32,8 @@ class LogisticRegression():
         self._cost = self.__cost_calculation()
         self._accuracy = self.__accuracy_calculation()
 
-        self._optimizer = tf.train.AdamOptimizer(learning_rate=FLAGS.learning_rate).minimize(self._cost)
+        self._optimizer = tf.train.AdamOptimizer(
+            learning_rate=FLAGS.learning_rate).minimize(self._cost)
 
         self._session = tf.Session()
         self._session.run(tf.global_variables_initializer())
@@ -162,14 +168,14 @@ def main(_):
     acc = 0
     with tqdm(total=epochs, postfix='Accuracy = {:.3f}'.format(acc)) as epoch_progress:
         for epoch in range(epochs):
-            with tqdm(total=len(mnist), postfix='Loss: {:.3f}'.format(loss), 
+            with tqdm(total=len(mnist), postfix='Loss: {:.3f}'.format(loss),
                       mininterval=1e-4, leave=True) as batch_progress:
                 for batch, (batch_x, batch_y) in enumerate(mnist):
                     loss = model.train_step(batch_x, batch_y)
-                    batch_progress.set_postfix(Loss = loss)
+                    batch_progress.set_postfix(Loss=loss)
                     batch_progress.update()
                 acc = model.validation_cycle(mnist.test_x, mnist.test_y, mnist.test_y_cls)
-                epoch_progress.set_postfix(Accuracy = acc)
+                epoch_progress.set_postfix(Accuracy=acc)
                 epoch_progress.update()
 
     # Plot weights

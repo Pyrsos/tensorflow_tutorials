@@ -1,11 +1,14 @@
-import matplotlib.pyplot as plt
+'''
+Example script for constructing CNN for classifying the MNIST dataset.
+'''
 from absl import flags
 import tensorflow as tf
-import numpy as np
 from tqdm import tqdm
 from dataset_utilities.mnist import MNIST
-from utilities.tf_utilities import Conv2DLayer, MaxPoolLayer, DenseLayer, FlattenLayer, transform_tf_variable, get_layer_output
-from utilities.plot_utilities import plot_conv_weights, plot_conv_layer, print_confusion_matrix, find_wrong_predictions, plot_images
+from utilities.tf_utilities import (Conv2DLayer, MaxPoolLayer, DenseLayer, FlattenLayer,
+                                    transform_tf_variable, get_layer_output)
+from utilities.plot_utilities import (plot_conv_weights, plot_conv_layer, print_confusion_matrix,
+                                      find_wrong_predictions, plot_images)
 
 flags.DEFINE_integer("filter_size_1", 5, help="Size of the filters for the first conv layer")
 flags.DEFINE_integer("num_filters_1", 16, help="Number of filters in first conv layer")
@@ -15,6 +18,7 @@ flags.DEFINE_integer("fc_size", 128, help="Size of fully connected layer")
 flags.DEFINE_integer("batch_size", 100, help="Batch size")
 flags.DEFINE_integer("epochs", 100, help="Number of epochs")
 flags.DEFINE_float("learning_rate", 1e-4, help="Learning rate")
+flags.DEFINE_float("dropout_rate", 0.2, help="Dropout rate")
 
 FLAGS = flags.FLAGS
 
@@ -40,6 +44,8 @@ def main(_):
     y_true = tf.placeholder(tf.float32, shape=[None, num_classes], name='y_true')
     y_true_cls = tf.argmax(y_true, axis=1)
 
+    dropout_rate = tf.placeholder_with_default(0.0, shape=(), name='dropout_rate')
+
     # First convolutional layer
     conv_1 = Conv2DLayer(input_data=x_image, num_input_channels=num_channels,
                          filter_size=FLAGS.filter_size_1, num_filters=FLAGS.num_filters_1)
@@ -53,8 +59,9 @@ def main(_):
     dense_1 = DenseLayer(input_data=layer_flat.output_layer,
                          num_inputs=layer_flat.num_features,
                          num_outputs=FLAGS.fc_size)
+    dropout_layer = tf.nn.dropout(x=dense_1.output_layer, rate=dropout_rate)
     # Softmax layer
-    softmax_layer = DenseLayer(input_data=dense_1.output_layer,
+    softmax_layer = DenseLayer(input_data=dropout_layer,
                                num_inputs=FLAGS.fc_size, num_outputs=num_classes,
                                activation=tf.nn.softmax)
 
@@ -87,7 +94,8 @@ def main(_):
                       mininterval=1e-4, leave=True) as batch_progress:
                 # Train model per batch
                 for batch_x, batch_y in mnist:
-                    feed_dict_train = {x_input: batch_x, y_true: batch_y}
+                    feed_dict_train = {x_input: batch_x, y_true:
+                                       batch_y, dropout_rate: FLAGS.dropout_rate}
                     _, loss = session.run([optimizer, cost], feed_dict=feed_dict_train)
                     batch_progress.set_postfix(Loss=loss)
                     batch_progress.update()
@@ -102,15 +110,23 @@ def main(_):
                 epoch_progress.update()
 
     # Plot the filter weights for the convolutional layers
-    conv_1_weights = transform_tf_variable(session, conv_1._weights)
-    conv_2_weights = transform_tf_variable(session, conv_2._weights)
+    conv_1_weights = transform_tf_variable(session, conv_1.weights)
+    conv_2_weights = transform_tf_variable(session, conv_2.weights)
     plot_conv_weights(conv_1_weights)
     plot_conv_weights(conv_2_weights)
     # Plot the outputs of the convolutional layers.
-    conv_1_layer_output = get_layer_output(session, x_input, [mnist.test_x[0]], conv_1.output_layer)
-    conv_2_layer_output = get_layer_output(session, x_input, [mnist.test_x[0]], conv_2.output_layer)
+    conv_1_layer_output = get_layer_output(session, x_input,
+                                           [mnist.test_x[0]], conv_1.output_layer)
+    max_pool_1_layer_output = get_layer_output(session, x_input,
+                                               [mnist.test_x[0]], max_pool1.output_layer)
+    conv_2_layer_output = get_layer_output(session, x_input,
+                                           [mnist.test_x[0]], conv_2.output_layer)
+    max_pool_2_layer_output = get_layer_output(session, x_input,
+                                               [mnist.test_x[0]], max_pool2.output_layer)
     plot_conv_layer(conv_1_layer_output)
+    plot_conv_layer(max_pool_1_layer_output)
     plot_conv_layer(conv_2_layer_output)
+    plot_conv_layer(max_pool_2_layer_output)
     # Plot the confusion matrix
     print_confusion_matrix(labels=mnist.test_y_cls,
                            predictions=predictions,
@@ -119,11 +135,13 @@ def main(_):
     wrong_images, wrong_labels, correct_labels = find_wrong_predictions(labels=mnist.test_y_cls,
                                                                         predictions=predictions,
                                                                         images=mnist.test_x)
-    incorrect_logits = get_layer_output(session, x_input, wrong_images, softmax_layer.pre_activation_layer)
-    incorrect_predictions = get_layer_output(session, x_input, wrong_images, softmax_layer.output_layer)
-    plot_images(images=wrong_images[:5], y_pred=incorrect_predictions[:5], logits=incorrect_logits[:5],
-                cls_true=correct_labels[:5], cls_pred=wrong_labels[:5],
-                img_shape=img_size)
+    incorrect_logits = get_layer_output(session, x_input,
+                                        wrong_images, softmax_layer.pre_activation_layer)
+    incorrect_predictions = get_layer_output(session, x_input,
+                                             wrong_images, softmax_layer.output_layer)
+    plot_images(images=wrong_images[:5], y_pred=incorrect_predictions[:5],
+                logits=incorrect_logits[:5], cls_true=correct_labels[:5],
+                cls_pred=wrong_labels[:5], img_shape=img_size)
 
 if __name__ == '__main__':
     tf.app.run()
