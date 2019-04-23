@@ -94,3 +94,48 @@ def plot_weights(weights, img_shape):
         axes.set_yticks([])
 
     plt.show()
+
+def plot_conv_weights(weights, input_channel=0):
+    '''
+    Plot the weights of the convolutional layers.
+    '''
+    # Get min and max for the weights
+    # to adjust any issues with colors.
+    w_min = np.min(weights)
+    w_max = np.max(weights)
+    # Get the number of filters used in the conv layer.
+    num_filters = weights.shape[3]
+    # Num of grids to plot (rounded up to the square root
+    # of the number of filters.
+    num_grids = int(np.ceil(np.sqrt(num_filters)))
+    # Figure with a grid of sub-plots
+    fig, axes = plt.subplots(num_grids, num_grids)
+    # Plot all the filter-weights
+    for i, ax in enumerate(axes.flat):
+        if i < num_filters:
+            img = weights[:, :, input_channel, i]
+            ax.imshow(img, vmin=w_min, vmax=w_max,
+                      interpolation='nearest', cmap='seismic')
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    plt.show()
+
+def plot_conv_layer(layer_output):
+    '''
+    Plot the output of a convolutional layer.
+    '''
+    num_filters = layer_output.shape[3]
+    num_grids = int(np.ceil(np.sqrt(num_filters)))
+
+    fig, axes = plt.subplots(num_grids, num_grids)
+
+    for i, ax in enumerate(axes.flat):
+        if i < num_filters:
+            img = layer_output[0, :, :, i]
+            ax.imshow(img, interpolation='nearest', cmap='binary')
+
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    plt.show()

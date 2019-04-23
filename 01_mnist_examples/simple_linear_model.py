@@ -1,7 +1,14 @@
+from absl import flags
 import tensorflow as tf
-from tqdm import tqdm, trange
+from tqdm import tqdm
 from utilities.plot_utilities import print_confusion_matrix, plot_weights, find_wrong_predictions, plot_images
 from dataset_utilities.mnist import MNIST
+
+flags.DEFINE_integer("batch_size", 100, help="Batch size")
+flags.DEFINE_integer("epochs", 100, help="Number of epochs")
+flags.DEFINE_float("learning_rate", 0.5, help="Learning rate")
+
+FLAGS = flags.FLAGS
 
 class LogisticRegression():
     '''
@@ -20,7 +27,7 @@ class LogisticRegression():
         self._cost = self.__cost_calculation()
         self._accuracy = self.__accuracy_calculation()
 
-        self._optimizer = tf.train.AdamOptimizer(learning_rate=0.01).minimize(self._cost)
+        self._optimizer = tf.train.AdamOptimizer(learning_rate=FLAGS.learning_rate).minimize(self._cost)
 
         self._session = tf.Session()
         self._session.run(tf.global_variables_initializer())
@@ -127,13 +134,13 @@ class LogisticRegression():
 
         return acc
 
-def main():
+def main(_):
     '''
     Main function to execute. Loading MNIST and training model.
     '''
 
     # Load MNIST dataset
-    mnist = MNIST(batch_size=100, normalize_data=True,
+    mnist = MNIST(batch_size=FLAGS.batch_size, normalize_data=True,
                   one_hot_encoding=True, flatten_images=True,
                   shuffle_per_epoch=True)
 
@@ -143,7 +150,7 @@ def main():
     num_classes = mnist.return_num_classes()
 
     # Call model
-    model = LogisticRegression(batch_size=100, num_iterations=1000,
+    model = LogisticRegression(batch_size=FLAGS.batch_size, num_iterations=FLAGS.epochs,
                                input_size=img_size_flat, output_layer_size=num_classes)
 
 
@@ -184,4 +191,4 @@ def main():
                 cls_true=correct_labels[:5], cls_pred=wrong_labels[:5],
                 img_shape=original_image_shape)
 if __name__ == '__main__':
-    main()
+    tf.app.run()

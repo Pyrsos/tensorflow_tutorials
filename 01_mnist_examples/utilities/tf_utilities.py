@@ -1,5 +1,22 @@
 import tensorflow as tf
 
+def get_layer_output(session, graph_input, input_data, layer):
+    '''
+    Retrieve a layer output for one input instance.
+    '''
+    feed_dict = {graph_input: input_data}
+    output = session.run(layer, feed_dict=feed_dict)
+
+    return output
+
+def transform_tf_variable(session, variable):
+    '''
+    Transform any tensorflow variable to a standard numpy array.
+    '''
+    transformed_variable = session.run(variable)
+
+    return transformed_variable
+
 def new_weights(shape):
     '''
     Construct weights for layer.

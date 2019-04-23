@@ -1,8 +1,11 @@
+import matplotlib.pyplot as plt
 from absl import flags
 import tensorflow as tf
+import numpy as np
 from tqdm import tqdm
 from dataset_utilities.mnist import MNIST
-from utilities.tf_utilities import Conv2DLayer, MaxPoolLayer, DenseLayer, FlattenLayer
+from utilities.tf_utilities import Conv2DLayer, MaxPoolLayer, DenseLayer, FlattenLayer, transform_tf_variable, get_layer_output
+from utilities.plot_utilities import plot_conv_weights, plot_conv_layer, print_confusion_matrix, find_wrong_predictions, plot_images
 
 flags.DEFINE_integer("filter_size_1", 5, help="Size of the filters for the first conv layer")
 flags.DEFINE_integer("num_filters_1", 16, help="Number of filters in first conv layer")
@@ -82,17 +85,45 @@ def main(_):
         for epoch in range(FLAGS.epochs):
             with tqdm(total=len(mnist), postfix='Loss: {:.3f}'.format(loss),
                       mininterval=1e-4, leave=True) as batch_progress:
+                # Train model per batch
                 for batch_x, batch_y in mnist:
                     feed_dict_train = {x_input: batch_x, y_true: batch_y}
                     _, loss = session.run([optimizer, cost], feed_dict=feed_dict_train)
                     batch_progress.set_postfix(Loss=loss)
                     batch_progress.update()
+
+                # Test model for entire test set
                 feed_dict_test = {x_input: mnist.test_x,
                                   y_true: mnist.test_y,
                                   y_true_cls: mnist.test_y_cls}
-                acc = session.run(accuracy, feed_dict=feed_dict_test)
+
+                acc, predictions = session.run([accuracy, y_pred_cls], feed_dict=feed_dict_test)
                 epoch_progress.set_postfix(Accuracy=acc)
                 epoch_progress.update()
+
+    # Plot the filter weights for the convolutional layers
+    conv_1_weights = transform_tf_variable(session, conv_1._weights)
+    conv_2_weights = transform_tf_variable(session, conv_2._weights)
+    plot_conv_weights(conv_1_weights)
+    plot_conv_weights(conv_2_weights)
+    # Plot the outputs of the convolutional layers.
+    conv_1_layer_output = get_layer_output(session, x_input, [mnist.test_x[0]], conv_1.output_layer)
+    conv_2_layer_output = get_layer_output(session, x_input, [mnist.test_x[0]], conv_2.output_layer)
+    plot_conv_layer(conv_1_layer_output)
+    plot_conv_layer(conv_2_layer_output)
+    # Plot the confusion matrix
+    print_confusion_matrix(labels=mnist.test_y_cls,
+                           predictions=predictions,
+                           num_classes=num_classes)
+    # Plot images that are classified incorrectly
+    wrong_images, wrong_labels, correct_labels = find_wrong_predictions(labels=mnist.test_y_cls,
+                                                                        predictions=predictions,
+                                                                        images=mnist.test_x)
+    incorrect_logits = get_layer_output(session, x_input, wrong_images, softmax_layer.pre_activation_layer)
+    incorrect_predictions = get_layer_output(session, x_input, wrong_images, softmax_layer.output_layer)
+    plot_images(images=wrong_images[:5], y_pred=incorrect_predictions[:5], logits=incorrect_logits[:5],
+                cls_true=correct_labels[:5], cls_pred=wrong_labels[:5],
+                img_shape=img_size)
 
 if __name__ == '__main__':
     tf.app.run()
