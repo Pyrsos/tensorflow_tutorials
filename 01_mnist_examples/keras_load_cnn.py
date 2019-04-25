@@ -6,6 +6,7 @@ from absl import flags
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.keras.models import load_model
+from tensorflow.python.keras import backend as K
 from dataset_utilities.mnist import MNIST
 from utilities.plot_utilities import (plot_conv_weights, plot_conv_layer, print_confusion_matrix,
                                       find_wrong_predictions, plot_images)
@@ -45,6 +46,29 @@ def main(_):
     plot_images(images=wrong_images[:5], y_pred=incorrect_logits[:5],
                 logits=incorrect_logits[:5], cls_true=correct_labels[:5],
                 cls_pred=wrong_labels[:5], img_shape=img_size)
+    # Get model summary
+    model.summary()
+    # Get the input layer
+    input_layer = model.layers[0]
+    # Retrieve convolutional layers and weights
+    conv1_layer = model.layers[2]
+    conv1_weights = conv1_layer.get_weights()[0]
+    conv2_layer = model.layers[5]
+    conv2_weights = conv2_layer.get_weights()[0]
+    # Plot convolutional weights
+    plot_conv_weights(conv1_weights)
+    plot_conv_weights(conv2_weights)
+    # Output of convolutions
+    conv1_output = K.function(inputs=[input_layer.input],
+                              outputs=[conv1_layer.output])
+    conv2_output = K.function(inputs=[input_layer.input],
+                              outputs=[conv2_layer.output])
+    # Get an example image to plot the convolutions
+    image_instance = np.array([mnist.test_x[0]])
+    conv_1_ex_output = conv1_output(image_instance)[0]
+    conv_2_ex_output = conv2_output(image_instance)[0]
+    plot_conv_layer(conv_1_ex_output)
+    plot_conv_layer(conv_2_ex_output)
 
 if __name__ == '__main__':
     tf.app.run()
