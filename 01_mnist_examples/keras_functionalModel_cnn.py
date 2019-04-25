@@ -1,4 +1,3 @@
-
 '''
 Example script for constructing CNN for classifying the MNIST dataset using keras.
 '''
@@ -89,6 +88,10 @@ def main(_):
     plot_images(images=wrong_images[:5], y_pred=incorrect_logits[:5],
                 logits=incorrect_logits[:5], cls_true=correct_labels[:5],
                 cls_pred=wrong_labels[:5], img_shape=img_size)
+
+    # Save model
+    path_model = 'model.keras'
+    model.save(path_model)
 
 if __name__ == '__main__':
     tf.app.run()
