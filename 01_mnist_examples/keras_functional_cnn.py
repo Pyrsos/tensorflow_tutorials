@@ -60,9 +60,16 @@ def main(_):
     model.compile(optimizer='rmsprop',
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
+    # Callbacks for saving and early stopping
+    callbacks = [tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5),
+                 tf.keras.callbacks.ModelCheckpoint(filepath='best_model.h5',
+                                                    monitor='val_loss',
+                                                    save_best_only=True)]
     # Training
     model.fit(x=mnist.train_x, y=mnist.train_y,
-              epochs=FLAGS.epochs, batch_size=FLAGS.batch_size)
+              epochs=FLAGS.epochs, batch_size=FLAGS.batch_size,
+              callbacks=callbacks,
+              validation_data=(mnist.test_x, mnist.test_y))
     # Evaluation
     model.evaluate(x=mnist.test_x, y=mnist.test_y)
     logits = model.predict(x=mnist.test_x)
@@ -83,10 +90,6 @@ def main(_):
     plot_images(images=wrong_images[:5], y_pred=incorrect_logits[:5],
                 logits=incorrect_logits[:5], cls_true=correct_labels[:5],
                 cls_pred=wrong_labels[:5], img_shape=img_size)
-
-    # Save model
-    path_model = 'model.keras'
-    model.save(path_model)
 
 if __name__ == '__main__':
     tf.app.run()

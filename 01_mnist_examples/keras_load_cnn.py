@@ -25,7 +25,7 @@ def main(_):
     img_size = mnist.original_image_shape
     num_classes = mnist.return_num_classes()
     # Load model
-    model = tf.keras.models.load_model('model.keras')
+    model = tf.keras.models.load_model('best_model.h5')
     logits = model.predict(x=mnist.test_x)
     predictions = np.argmax(logits, axis=1)
 
@@ -46,6 +46,7 @@ def main(_):
                 cls_pred=wrong_labels[:5], img_shape=img_size)
     # Get model summary
     model.summary()
+    model.evaluate(x=mnist.test_x, y=mnist.test_y)
     # Get the input layer
     input_layer = model.layers[0]
     # Retrieve convolutional layers and weights
