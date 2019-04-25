@@ -5,8 +5,6 @@ for classifying the MNIST dataset using keras.
 from absl import flags
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras.models import load_model
-from tensorflow.python.keras import backend as K
 from dataset_utilities.mnist import MNIST
 from utilities.plot_utilities import (plot_conv_weights, plot_conv_layer, print_confusion_matrix,
                                       find_wrong_predictions, plot_images)
@@ -27,7 +25,7 @@ def main(_):
     img_size = mnist.original_image_shape
     num_classes = mnist.return_num_classes()
     # Load model
-    model = load_model('model.keras')
+    model = tf.keras.models.load_model('model.keras')
     logits = model.predict(x=mnist.test_x)
     predictions = np.argmax(logits, axis=1)
 
@@ -59,10 +57,10 @@ def main(_):
     plot_conv_weights(conv1_weights)
     plot_conv_weights(conv2_weights)
     # Output of convolutions
-    conv1_output = K.function(inputs=[input_layer.input],
-                              outputs=[conv1_layer.output])
-    conv2_output = K.function(inputs=[input_layer.input],
-                              outputs=[conv2_layer.output])
+    conv1_output = tf.keras.backend.function(
+        inputs=[input_layer.input], outputs=[conv1_layer.output])
+    conv2_output = tf.keras.backend.function(
+        inputs=[input_layer.input], outputs=[conv2_layer.output])
     # Get an example image to plot the convolutions
     image_instance = np.array([mnist.test_x[0]])
     conv_1_ex_output = conv1_output(image_instance)[0]

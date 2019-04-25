@@ -4,13 +4,8 @@ Example script for constructing CNN for classifying the MNIST dataset using kera
 from absl import flags
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import (Input, Reshape, MaxPooling2D,
-                                     Conv2D, Dense, Flatten, Dropout)
-from tensorflow.python.keras.optimizers import Adam
 from dataset_utilities.mnist import MNIST
-from utilities.plot_utilities import (plot_conv_weights, plot_conv_layer, print_confusion_matrix,
-                                      find_wrong_predictions, plot_images)
+from utilities.plot_utilities import print_confusion_matrix, find_wrong_predictions, plot_images
 
 flags.DEFINE_integer("filter_size_1", 5, help="Size of the filters for the first conv layer")
 flags.DEFINE_integer("num_filters_1", 16, help="Number of filters in first conv layer")
@@ -40,27 +35,27 @@ def main(_):
     num_channels = 1 # Because this is greyscale (need to introduce in the MNIST class)
 
     # Construct the model
-    inputs = Input(shape=(img_size[0], img_size[1]))
+    inputs = tf.keras.layers.Input(shape=(img_size[0], img_size[1]))
     net = inputs
-    net = Reshape((img_size[0], img_size[1], num_channels))(net)
-    net = Conv2D(kernel_size=FLAGS.filter_size_1, strides=1,
-                 filters=FLAGS.num_filters_1, padding='same',
-                 activation='relu', name='conv_layer1')(net)
-    net = MaxPooling2D(pool_size=2, strides=2)(net)
-    net = Dropout(FLAGS.dropout_rate)(net)
-    net = Conv2D(kernel_size=FLAGS.filter_size_2, strides=1,
-                 filters=FLAGS.num_filters_2, padding='same',
-                 activation='relu', name='conv_layer2')(net)
-    net = MaxPooling2D(pool_size=2, strides=2)(net)
-    net = Dropout(FLAGS.dropout_rate)(net)
-    net = Flatten()(net)
-    net = Dense(FLAGS.fc_size, activation='relu')(net)
-    net = Dropout(FLAGS.dropout_rate)(net)
-    net = Dense(num_classes, activation='softmax')(net)
+    net = tf.keras.layers.Reshape((img_size[0], img_size[1], num_channels))(net)
+    net = tf.keras.layers.Conv2D(kernel_size=FLAGS.filter_size_1, strides=1,
+                                 filters=FLAGS.num_filters_1, padding='same',
+                                 activation='relu', name='conv_layer1')(net)
+    net = tf.keras.layers.MaxPooling2D(pool_size=2, strides=2)(net)
+    net = tf.keras.layers.Dropout(FLAGS.dropout_rate)(net)
+    net = tf.keras.layers.Conv2D(kernel_size=FLAGS.filter_size_2, strides=1,
+                                 filters=FLAGS.num_filters_2, padding='same',
+                                 activation='relu', name='conv_layer2')(net)
+    net = tf.keras.layers.MaxPooling2D(pool_size=2, strides=2)(net)
+    net = tf.keras.layers.Dropout(FLAGS.dropout_rate)(net)
+    net = tf.keras.layers.Flatten()(net)
+    net = tf.keras.layers.Dense(FLAGS.fc_size, activation='relu')(net)
+    net = tf.keras.layers.Dropout(FLAGS.dropout_rate)(net)
+    net = tf.keras.layers.Dense(num_classes, activation='softmax')(net)
 
     outputs = net
     # Construct keras model by passing inputs and outputs to the graph
-    model = Model(inputs=inputs, outputs=outputs)
+    model = tf.keras.models.Model(inputs=inputs, outputs=outputs)
     # Optimization and cost
     model.compile(optimizer='rmsprop',
                   loss='categorical_crossentropy',

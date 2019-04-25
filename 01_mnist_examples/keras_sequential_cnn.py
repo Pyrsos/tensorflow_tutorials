@@ -4,13 +4,8 @@ Example script for constructing CNN for classifying the MNIST dataset using kera
 from absl import flags
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import (InputLayer, Input, Reshape, MaxPooling2D,
-                                     Conv2D, Dense, Flatten, Dropout)
-from tensorflow.python.keras.optimizers import Adam
 from dataset_utilities.mnist import MNIST
-from utilities.plot_utilities import (plot_conv_weights, plot_conv_layer, print_confusion_matrix,
-                                      find_wrong_predictions, plot_images)
+from utilities.plot_utilities import print_confusion_matrix, find_wrong_predictions, plot_images
 
 flags.DEFINE_integer("filter_size_1", 5, help="Size of the filters for the first conv layer")
 flags.DEFINE_integer("num_filters_1", 16, help="Number of filters in first conv layer")
@@ -40,27 +35,26 @@ def main(_):
     num_channels = 1 # Because this is greyscale (need to introduce in the MNIST class)
 
     # Construct the model
-    model = Sequential()
-    model.add(InputLayer(input_shape=(img_size[0], img_size[1])))
-    model.add(Reshape((img_size[0], img_size[1], num_channels)))
-    model.add(Conv2D(kernel_size=FLAGS.filter_size_1, strides=1,
-                     filters=FLAGS.num_filters_1, padding='same',
-                     activation='relu', name='conv_layer1'))
-    model.add(MaxPooling2D(pool_size=2, strides=2))
-    model.add(Dropout(FLAGS.dropout_rate))
-    model.add(Conv2D(kernel_size=FLAGS.filter_size_1, strides=1,
-                     filters=FLAGS.num_filters_1, padding='same',
-                     activation='relu', name='conv_layer2'))
-    model.add(MaxPooling2D(pool_size=2, strides=2))
-    model.add(Dropout(FLAGS.dropout_rate))
-    model.add(Flatten())
-    model.add(Dense(FLAGS.fc_size, activation='relu'))
-    model.add(Dropout(FLAGS.dropout_rate))
-    model.add(Dense(num_classes, activation='softmax'))
+    model = tf.keras.models.Sequential()
+    model.add(tf.keras.layers.InputLayer(input_shape=(img_size[0], img_size[1])))
+    model.add(tf.keras.layers.Reshape((img_size[0], img_size[1], num_channels)))
+    model.add(tf.keras.layers.Conv2D(kernel_size=FLAGS.filter_size_1, strides=1,
+                                     filters=FLAGS.num_filters_1, padding='same',
+                                     activation='relu', name='conv_layer1'))
+    model.add(tf.keras.layers.MaxPooling2D(pool_size=2, strides=2))
+    model.add(tf.keras.layers.Dropout(FLAGS.dropout_rate))
+    model.add(tf.keras.layers.Conv2D(kernel_size=FLAGS.filter_size_1, strides=1,
+                                     filters=FLAGS.num_filters_1, padding='same',
+                                     activation='relu', name='conv_layer2'))
+    model.add(tf.keras.layers.MaxPooling2D(pool_size=2, strides=2))
+    model.add(tf.keras.layers.Dropout(FLAGS.dropout_rate))
+    model.add(tf.keras.layers.Flatten())
+    model.add(tf.keras.layers.Dense(FLAGS.fc_size, activation='relu'))
+    model.add(tf.keras.layers.Dropout(FLAGS.dropout_rate))
+    model.add(tf.keras.layers.Dense(num_classes, activation='softmax'))
 
     # Optimization and cost for compiling the model
-    optimizer = Adam(lr=1e-3)
-    model.compile(optimizer=optimizer, loss='categorical_crossentropy',
+    model.compile(optimizer='adam', loss='categorical_crossentropy',
                   metrics=['accuracy'])
     # Training
     model.fit(x=mnist.train_x, y=mnist.train_y,
@@ -86,5 +80,5 @@ def main(_):
                 logits=incorrect_logits[:5], cls_true=correct_labels[:5],
                 cls_pred=wrong_labels[:5], img_shape=img_size)
 
-if __name__=='__main__':
+if __name__ == '__main__':
     tf.app.run()
