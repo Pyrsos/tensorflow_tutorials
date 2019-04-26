@@ -106,9 +106,9 @@ def main(_):
                            predictions=predictions,
                            num_classes=num_classes)
     # Plot images that are classified incorrectly
-    wrong_images, wrong_labels, correct_labels = find_wrong_predictions(labels=mnist.test_y_cls,
-                                                                        predictions=predictions,
-                                                                        images=mnist.test_x)
+    wrong_indeces, wrong_images, wrong_labels, correct_labels = find_wrong_predictions(labels=mnist.test_y_cls,
+                                                                                       predictions=predictions,
+                                                                                       images=mnist.test_x)
     incorrect_logits = get_layer_output(session, x_input,
                                         wrong_images, softmax_layer.pre_activation_layer)
     incorrect_predictions = get_layer_output(session, x_input,

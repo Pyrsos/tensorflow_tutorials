@@ -82,7 +82,7 @@ def main(_):
                       metrics=['accuracy'])
         # Callbacks for saving and early stopping
         callbacks = [tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5),
-                     tf.keras.callbacks.ModelCheckpoint(filepath='best_model_nn_{}.h5'.format(i),
+                     tf.keras.callbacks.ModelCheckpoint(filepath='ensemble_network_{}.h5'.format(i),
                                                         monitor='val_loss',
                                                         save_best_only=True)]
         model.fit(x=train_x, y=train_y,

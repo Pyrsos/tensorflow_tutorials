@@ -13,13 +13,13 @@ def find_wrong_predictions(labels, predictions, images):
     Find the instances of the set where the system has made a wrong
     prediction and return both the actual image and the wrong prediction.
     '''
-    wrong_predictions = np.where(labels != predictions)[0]
+    wrong_indeces = np.where(labels != predictions)[0]
 
-    wrong_images = images[wrong_predictions]
-    wrong_labels = predictions[wrong_predictions]
-    correct_labels = labels[wrong_predictions]
+    wrong_images = images[wrong_indeces]
+    wrong_labels = predictions[wrong_indeces]
+    correct_labels = labels[wrong_indeces]
 
-    return wrong_images, wrong_labels, correct_labels
+    return wrong_indeces, wrong_images, wrong_labels, correct_labels
 
 def plot_images(images, y_pred, logits, cls_true, cls_pred, img_shape):
     '''

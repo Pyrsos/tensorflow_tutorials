@@ -80,9 +80,9 @@ def main(_):
                            predictions=predictions,
                            num_classes=num_classes)
     # Plot images that are classified incorrectly
-    wrong_images, wrong_labels, correct_labels = find_wrong_predictions(labels=mnist.test_y_cls,
-                                                                        predictions=predictions,
-                                                                        images=mnist.test_x)
+    wrong_indeces, wrong_images, wrong_labels, correct_labels = find_wrong_predictions(labels=mnist.test_y_cls,
+                                                                                       predictions=predictions,
+                                                                                       images=mnist.test_x)
     incorrect_logits = model.predict(wrong_images)
     # Need to find a way to get the output on the different layers of the
     # model. Here, the pre-activation dense layer values are necessary for
