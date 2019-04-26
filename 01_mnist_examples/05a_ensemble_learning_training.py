@@ -1,6 +1,7 @@
 '''
 Example script for constructing an ensemble of CNNs for classifying the MNIST dataset using keras.
 '''
+import os
 from absl import flags
 from sklearn.model_selection import train_test_split
 import tensorflow as tf
@@ -16,6 +17,7 @@ flags.DEFINE_integer("epochs", 100, help="Number of epochs")
 flags.DEFINE_float("learning_rate", 1e-4, help="Learning rate")
 flags.DEFINE_float("dropout_rate", 0.2, help="Dropout rate")
 flags.DEFINE_integer("ensemble_size", 5, help="Number of networks to be trained")
+flags.DEFINE_string("model_filepath", 'ensemble_network_models', help="Folder to store the models")
 
 FLAGS = flags.FLAGS
 
@@ -33,17 +35,30 @@ def random_partition_test_set(data, labels, partition):
 
     return train_set
 
+def check_and_create_folder(folder_name):
+    '''
+    Pass a folder name, check if it exists, otherwise
+    create a new folder with that given name.
+    '''
+    if os.path.exists(folder_name):
+        print("Will store models in existing folder")
+    else:
+        os.mkdir(folder_name)
+
 def main(_):
     '''
     Main body of code for creating a two-layer convolutional neural
     network, with max pooling, flatten dense layer and softmax output.
     '''
+    check_and_create_folder(FLAGS.model_filepath)
     # Import data
     mnist = MNIST(batch_size=FLAGS.batch_size, normalize_data=True,
                   one_hot_encoding=True, flatten_images=False,
                   shuffle_per_epoch=True)
 
     for i in range(1, FLAGS.ensemble_size+1):
+        # Path to save the model
+        model_filepath = os.path.join(FLAGS.model_filepath, 'ensemble_network_{}.h5'.format(i))
         # Partition the train set randomly and train the network
         print("Training model {}/{}".format(i, FLAGS.ensemble_size))
         partition = (mnist.train_y.shape[0]/FLAGS.ensemble_size)/mnist.train_y.shape[0]
@@ -81,8 +96,8 @@ def main(_):
                       loss='categorical_crossentropy',
                       metrics=['accuracy'])
         # Callbacks for saving and early stopping
-        callbacks = [tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5),
-                     tf.keras.callbacks.ModelCheckpoint(filepath='ensemble_network_{}.h5'.format(i),
+        callbacks = [tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=1),
+                     tf.keras.callbacks.ModelCheckpoint(filepath=model_filepath,
                                                         monitor='val_loss',
                                                         save_best_only=True)]
         model.fit(x=train_x, y=train_y,
