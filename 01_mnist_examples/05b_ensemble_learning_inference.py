@@ -2,13 +2,14 @@
 Example script for loading an ensemble of CNNs
 for classifying the MNIST dataset using keras.
 '''
+import os
 from absl import flags
 import numpy as np
 import tensorflow as tf
 from dataset_utilities.mnist import MNIST
 from utilities.plot_utilities import print_confusion_matrix, find_wrong_predictions, plot_images
 
-flags.DEFINE_string("model_path", "model.keras", help="Path to the model file")
+flags.DEFINE_string("ensemble_networks_path", "ensemble_network_models", help="Path to the model file")
 flags.DEFINE_integer("batch_size", 100, help="Batch size")
 
 FLAGS = flags.FLAGS
@@ -25,14 +26,18 @@ def main(_):
     img_size = mnist.original_image_shape
     num_classes = mnist.return_num_classes()
 
+    # Find number of models in folder
+    model_files = os.listdir(FLAGS.ensemble_networks_path)
+    num_models = len(model_files)
     # Lists to append the models and the logits
     ensemble_models = []
     ensemble_logits = []
 
-    for i in range(1, 6):
-        print("Loading model {}/{}".format(i, 5))
+    for i in range(1, num_models+1):
+        print("Loading model {}/{}".format(i, num_models))
         # Load model and get the performance
-        model = tf.keras.models.load_model('best_model_nn_{}.h5'.format(i))
+        model = tf.keras.models.load_model(os.path.join(
+            FLAGS.ensemble_networks_path, 'ensemble_network_{}.h5'.format(i)))
         model.evaluate(x=mnist.test_x,
                        y=mnist.test_y,
                        batch_size=FLAGS.batch_size)

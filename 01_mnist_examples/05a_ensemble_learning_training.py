@@ -60,7 +60,6 @@ def main(_):
         # Path to save the model
         model_filepath = os.path.join(FLAGS.model_filepath, 'ensemble_network_{}.h5'.format(i))
         # Partition the train set randomly and train the network
-        print("Training model {}/{}".format(i, FLAGS.ensemble_size))
         partition = (mnist.train_y.shape[0]/FLAGS.ensemble_size)/mnist.train_y.shape[0]
         train_x, train_y = random_partition_test_set(mnist.train_x, mnist.train_y,
                                                      partition=partition)
@@ -96,10 +95,11 @@ def main(_):
                       loss='categorical_crossentropy',
                       metrics=['accuracy'])
         # Callbacks for saving and early stopping
-        callbacks = [tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=1),
+        callbacks = [tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5),
                      tf.keras.callbacks.ModelCheckpoint(filepath=model_filepath,
                                                         monitor='val_loss',
                                                         save_best_only=True)]
+        print("Training model {}/{}".format(i, FLAGS.ensemble_size))
         model.fit(x=train_x, y=train_y,
                   epochs=FLAGS.epochs, batch_size=FLAGS.batch_size,
                   callbacks=callbacks,
