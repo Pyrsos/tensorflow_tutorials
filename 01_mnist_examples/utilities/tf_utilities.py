@@ -2,6 +2,16 @@
 Helper classes and functions for tensorflow operations.
 '''
 import tensorflow as tf
+import numpy as np
+
+def corrupt_data_with_noise(input_data, corruption_level):
+    '''
+    Corrupt the input data to be used in an autoencoder
+    model.
+    '''
+    noise = np.random.binomial(1, 1 - corruption_level, input_data.shape)
+
+    return noise
 
 def get_layer_output(session, graph_input, input_data, layer):
     '''
@@ -38,7 +48,7 @@ class Conv2DLayer():
     '''
     def __init__(self, input_data, num_input_channels,
                  filter_size, num_filters, strides=[1, 1, 1, 1],
-                 padding='SAME', use_pooling=True):
+                 padding='SAME'):
         # Define class variables
         self._input = input_data
         self._shape = [filter_size, filter_size, num_input_channels, num_filters]
@@ -135,6 +145,65 @@ class DenseLayer():
         output_layer = self._activation(self.pre_activation_layer)
 
         return output_layer
+
+class AutoencoderLayer():
+    '''
+    Simple autoencoder layer class.
+    '''
+    def __init__(self, input_data, mask, num_inputs,
+                 num_outputs, encoder_activation=tf.nn.relu,
+                 decoder_activation=tf.nn.sigmoid):
+        self._input = input_data
+        self._mask = mask
+        self.corrupted_input = self.__corrupt_input()
+        self.weights, self._biases, \
+        self.weights_prime, self._biases_prime = self.__init_weights(num_inputs,
+                                                                     num_outputs)
+        self._encoder_activation = encoder_activation
+        self._decoder_activation = decoder_activation
+        self.encoded_input = self.__encoder()
+        self.decoded_input = self.__decoder()
+
+    def __corrupt_input(self):
+        '''
+        Add noise to the input of the autoencoder.
+        '''
+        corrupted_input = self._mask * self._input
+
+        return corrupted_input
+
+    def __init_weights(self, num_inputs, num_outputs):
+        '''
+        Construct the weights for the autoencoder layer,
+        both encoding and decoding.
+        '''
+        weights = new_weights(shape=[num_inputs, num_outputs])
+        biases = new_biases(length=num_outputs)
+
+        weights_prime = tf.transpose(weights)
+        biases_prime = new_biases(length=num_inputs)
+
+        return weights, biases, weights_prime, biases_prime
+
+    def __encoder(self):
+        '''
+        Encoder part of the system to reduce the dimensionality
+        of the input data.
+        '''
+        linear_activation = tf.matmul(self.corrupted_input, self.weights) + self._biases
+        encoded_input = self._encoder_activation(linear_activation)
+
+        return encoded_input
+
+    def __decoder(self):
+        '''
+        Decoder part of the system to reconstruct the output
+        of the encoder.
+        '''
+        linear_activation = tf.matmul(self.encoded_input, self.weights_prime) + self._biases_prime
+        decoded_input = self._decoder_activation(linear_activation)
+
+        return decoded_input
 
 class FlattenLayer():
     '''

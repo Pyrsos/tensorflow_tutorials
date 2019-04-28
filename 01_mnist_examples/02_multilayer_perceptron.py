@@ -21,8 +21,8 @@ FLAGS = flags.FLAGS
 
 def main(_):
     '''
-    Main body of code for creating a two-layer convolutional neural
-    network, with max pooling, flatten dense layer and softmax output.
+    Main body of code for creating a simple multilayer perceptron
+    network with softmax output.
     '''
     # Import data
     mnist = MNIST(batch_size=FLAGS.batch_size, normalize_data=True,

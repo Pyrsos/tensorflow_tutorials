@@ -7,6 +7,7 @@ import numpy as np
 from sklearn.metrics import confusion_matrix
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 
 def find_wrong_predictions(labels, predictions, images):
     '''
@@ -143,3 +144,38 @@ def plot_conv_layer(layer_output):
         ax.set_yticks([])
 
     plt.show()
+
+def compare_images(real_image, corrupted_image, reconstructed_image):
+    '''
+    Plot the real image and the system's reconstructed
+    output.
+    '''
+    fig, ax = plt.subplots(nrows=1, ncols=3)
+    ax[0].imshow(real_image.reshape((28, 28)))
+    ax[0].set_title('Real image')
+    ax[1].imshow(corrupted_image.reshape((28, 28)))
+    ax[1].set_title('Corrupted image')
+    ax[2].imshow(reconstructed_image.reshape((28, 28)))
+    ax[2].set_title('Reconstructed image')
+
+    plt.show()
+
+def save_image_collection(images, filename):
+    '''
+    Save a subset of images as a png file.
+    '''
+    dimensions = images.shape[0]
+    n_image_rows = int(np.ceil(np.sqrt(dimensions)))
+    n_image_cols = int(np.ceil(dimensions * 1.0/n_image_rows))
+    grid = gridspec.GridSpec(n_image_rows, n_image_cols,
+                             top=1., bottom=0.,
+                             right=1., left=0.,
+                             hspace=0., wspace=0.)
+
+    for dim, count in zip(grid, range(int(dimensions))):
+        ax = plt.subplot(dim)
+        ax.imshow(images[count, :].reshape((28, 28)))
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    plt.savefig(filename + '_vis.png')
