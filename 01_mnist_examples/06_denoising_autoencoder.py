@@ -56,10 +56,10 @@ def main(_):
 
     # Input placeholder and corruption mask
     x_input = tf.placeholder(tf.float32, [None, img_size], name='input')
-    mask = tf.placeholder(tf.float32, [None, img_size], name='mask')
+    # mask = tf.placeholder(tf.float32, [None, img_size], name='mask')
 
     # Build the graph
-    autoencoder = AutoencoderLayer(input_data=x_input, mask=mask,
+    autoencoder = AutoencoderLayer(input_data=x_input,
                                    num_inputs=img_size,
                                    num_outputs=FLAGS.autoencoder_size)
 
@@ -81,14 +81,14 @@ def main(_):
                 # Train model per batch
                 for batch, (batch_x, _) in enumerate(mnist):
                     batch_noise = corrupt_data_with_noise(batch_x, FLAGS.corruption_level)
-                    feed_dict_train = {x_input:batch_x, mask:batch_noise}
+                    feed_dict_train = {x_input:batch_x, autoencoder.mask:batch_noise}
                     _, loss = session.run([train_op, cost], feed_dict=feed_dict_train)
                     # Update bar
                     batch_progress.set_postfix(Loss=loss)
                     batch_progress.update()
 
             test_set_noise = corrupt_data_with_noise(mnist.test_x, FLAGS.corruption_level)
-            feed_dict_test = {x_input: mnist.test_x, mask: test_set_noise}
+            feed_dict_test = {x_input: mnist.test_x, autoencoder.mask: test_set_noise}
             test_loss = session.run(cost, feed_dict=feed_dict_test)
             # Update bar
             epoch_progress.set_postfix(Loss=test_loss)
@@ -97,7 +97,7 @@ def main(_):
     weights = transform_tf_variable(session, autoencoder.weights)
     plot_autoencoder_weights(weights)
     subset = mnist.test_x[:100]
-    save_images(subset, x_input, mask, predict_op, session)
+    save_images(subset, x_input, autoencoder.mask, predict_op, session)
 
 if __name__ == '__main__':
     tf.app.run()

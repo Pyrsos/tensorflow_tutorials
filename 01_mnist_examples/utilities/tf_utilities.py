@@ -150,11 +150,11 @@ class AutoencoderLayer():
     '''
     Simple autoencoder layer class.
     '''
-    def __init__(self, input_data, mask, num_inputs,
-                 num_outputs, encoder_activation=tf.nn.relu,
+    def __init__(self, input_data, num_inputs, num_outputs,
+                 encoder_activation=tf.nn.relu,
                  decoder_activation=tf.nn.sigmoid):
         self._input = input_data
-        self._mask = mask
+        self.mask = self.__noise_mask(num_inputs)
         self.corrupted_input = self.__corrupt_input()
         self.weights, self._biases, \
         self.weights_prime, self._biases_prime = self.__init_weights(num_inputs,
@@ -164,11 +164,19 @@ class AutoencoderLayer():
         self.encoded_input = self.__encoder()
         self.decoded_input = self.__decoder()
 
+    def __noise_mask(self, num_inputs):
+        '''
+        Define the noise mask placeholder for the layer.
+        '''
+        mask = tf.placeholder(tf.float32, [None, num_inputs])
+
+        return mask
+
     def __corrupt_input(self):
         '''
         Add noise to the input of the autoencoder.
         '''
-        corrupted_input = self._mask * self._input
+        corrupted_input = self.mask * self._input
 
         return corrupted_input
 
