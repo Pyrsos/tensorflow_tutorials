@@ -151,11 +151,11 @@ def compare_images(real_image, corrupted_image, reconstructed_image):
     output.
     '''
     fig, ax = plt.subplots(nrows=1, ncols=3)
-    ax[0].imshow(real_image.reshape((28, 28)))
+    ax[0].imshow(real_image.reshape((28, 28)), cmap='binary')
     ax[0].set_title('Real image')
-    ax[1].imshow(corrupted_image.reshape((28, 28)))
+    ax[1].imshow(corrupted_image.reshape((28, 28)), cmap='binary')
     ax[1].set_title('Corrupted image')
-    ax[2].imshow(reconstructed_image.reshape((28, 28)))
+    ax[2].imshow(reconstructed_image.reshape((28, 28)), cmap='binary')
     ax[2].set_title('Reconstructed image')
 
     plt.show()
@@ -179,3 +179,25 @@ def save_image_collection(images, filename):
         ax.set_yticks([])
 
     plt.savefig(filename + '_vis.png')
+
+def plot_autoencoder_weights(weights):
+    '''
+    Plot the weights of an autoencoder
+    layer.
+    '''
+    weights = weights.T
+    dimensions = weights.shape[1]
+    n_image_rows = int(np.ceil(np.sqrt(dimensions)))
+    n_image_cols = int(np.ceil(dimensions * 1.0/n_image_rows))
+    grid = gridspec.GridSpec(10, 10,
+                             top=1., bottom=0.,
+                             right=1., left=0.,
+                             hspace=0., wspace=0.)
+
+    for dim, count in zip(grid, range(int(dimensions))):
+        ax = plt.subplot(dim)
+        ax.imshow(weights[count, :].reshape((28, 28)), cmap='binary')
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    plt.show()

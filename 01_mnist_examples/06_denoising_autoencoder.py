@@ -8,8 +8,8 @@ import numpy as np
 from tqdm import tqdm
 
 from dataset_utilities.mnist import MNIST
-from utilities.tf_utilities import AutoencoderLayer, corrupt_data_with_noise
-from utilities.plot_utilities import compare_images, save_image_collection
+from utilities.tf_utilities import AutoencoderLayer, corrupt_data_with_noise, transform_tf_variable
+from utilities.plot_utilities import compare_images, save_image_collection, plot_autoencoder_weights
 
 flags.DEFINE_integer("autoencoder_size", 500, help="Size of the autoencoder hidden layer")
 flags.DEFINE_float("corruption_level", 0.3, help="Percentage of noise used to corrupt input data")
@@ -94,6 +94,8 @@ def main(_):
             epoch_progress.set_postfix(Loss=test_loss)
             epoch_progress.update()
 
+    weights = transform_tf_variable(session, autoencoder.weights)
+    plot_autoencoder_weights(weights)
     subset = mnist.test_x[:100]
     save_images(subset, x_input, mask, predict_op, session)
 
