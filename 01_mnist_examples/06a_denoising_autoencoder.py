@@ -26,7 +26,7 @@ def save_images(subset, x_input, mask, predict_op,
     save the resulting image collections.
     '''
     # Corrupt the subset with the same corruption level
-    subset_noise = corrupt_data_with_noise(subset, FLAGS.corruption_level)
+    subset_noise = corrupt_data_with_noise(subset.shape, FLAGS.corruption_level)
     corrupt_images = subset * subset_noise
     # Create the feed dict to pass to the graph
     feed_dict = {x_input:subset, mask: subset_noise}
@@ -56,7 +56,6 @@ def main(_):
 
     # Input placeholder and corruption mask
     x_input = tf.placeholder(tf.float32, [None, img_size], name='input')
-    # mask = tf.placeholder(tf.float32, [None, img_size], name='mask')
 
     # Build the graph
     autoencoder = AutoencoderLayer(input_data=x_input,
@@ -68,6 +67,7 @@ def main(_):
     train_op = tf.train.AdamOptimizer(FLAGS.learning_rate).minimize(cost)
     predict_op = autoencoder.decoded_input
 
+    # Initialize tensorflow session
     session = tf.Session()
     session.run(tf.global_variables_initializer())
 
@@ -80,14 +80,14 @@ def main(_):
                       leave=True) as batch_progress:
                 # Train model per batch
                 for batch, (batch_x, _) in enumerate(mnist):
-                    batch_noise = corrupt_data_with_noise(batch_x, FLAGS.corruption_level)
+                    batch_noise = corrupt_data_with_noise(batch_x.shape, FLAGS.corruption_level)
                     feed_dict_train = {x_input:batch_x, autoencoder.mask:batch_noise}
                     _, loss = session.run([train_op, cost], feed_dict=feed_dict_train)
                     # Update bar
                     batch_progress.set_postfix(Loss=loss)
                     batch_progress.update()
 
-            test_set_noise = corrupt_data_with_noise(mnist.test_x, FLAGS.corruption_level)
+            test_set_noise = corrupt_data_with_noise(mnist.test_x.shape, FLAGS.corruption_level)
             feed_dict_test = {x_input: mnist.test_x, autoencoder.mask: test_set_noise}
             test_loss = session.run(cost, feed_dict=feed_dict_test)
             # Update bar

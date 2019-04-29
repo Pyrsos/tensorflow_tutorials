@@ -4,12 +4,12 @@ Helper classes and functions for tensorflow operations.
 import tensorflow as tf
 import numpy as np
 
-def corrupt_data_with_noise(input_data, corruption_level):
+def corrupt_data_with_noise(input_data_shape, corruption_level):
     '''
     Corrupt the input data to be used in an autoencoder
     model.
     '''
-    noise = np.random.binomial(1, 1 - corruption_level, input_data.shape)
+    noise = np.random.binomial(1, 1 - corruption_level, input_data_shape)
 
     return noise
 
@@ -153,6 +153,8 @@ class AutoencoderLayer():
     def __init__(self, input_data, num_inputs, num_outputs,
                  encoder_activation=tf.nn.relu,
                  decoder_activation=tf.nn.sigmoid):
+        self.num_inputs = num_inputs
+        self.num_outputs = num_outputs
         self._input = input_data
         self.mask = self.__noise_mask(num_inputs)
         self.corrupted_input = self.__corrupt_input()
@@ -161,8 +163,9 @@ class AutoencoderLayer():
                                                                      num_outputs)
         self._encoder_activation = encoder_activation
         self._decoder_activation = decoder_activation
-        self.encoded_input = self.__encoder()
-        self.decoded_input = self.__decoder()
+        self.encoded_input = self.encoder(self.corrupted_input)
+        self.decoded_input = self.decoder(self.encoded_input)
+        self.cost = self.__calculate_cost()
 
     def __noise_mask(self, num_inputs):
         '''
@@ -193,25 +196,30 @@ class AutoencoderLayer():
 
         return weights, biases, weights_prime, biases_prime
 
-    def __encoder(self):
+    def encoder(self, input_x):
         '''
         Encoder part of the system to reduce the dimensionality
         of the input data.
         '''
-        linear_activation = tf.matmul(self.corrupted_input, self.weights) + self._biases
+        linear_activation = tf.matmul(input_x, self.weights) + self._biases
         encoded_input = self._encoder_activation(linear_activation)
 
         return encoded_input
 
-    def __decoder(self):
+    def decoder(self, input_x):
         '''
         Decoder part of the system to reconstruct the output
         of the encoder.
         '''
-        linear_activation = tf.matmul(self.encoded_input, self.weights_prime) + self._biases_prime
+        linear_activation = tf.matmul(input_x, self.weights_prime) + self._biases_prime
         decoded_input = self._decoder_activation(linear_activation)
 
         return decoded_input
+
+    def __calculate_cost(self):
+        cost = tf.reduce_sum(tf.pow(self._input - self.decoded_input, 2))
+
+        return cost
 
 class FlattenLayer():
     '''
