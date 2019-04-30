@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from sklearn.utils import shuffle
+from sklearn.preprocessing import LabelEncoder
 
 class CIFAR10:
     '''
@@ -8,26 +9,32 @@ class CIFAR10:
     '''
     def __init__(self, batch_size, normalize_data,
                  one_hot_encoding, flatten_images,
-                 shuffle_per_epoch):
-        self.train_x, self.train_y_cls, self.test_x, self.test_y_cls = self.__load_data()
-        self.train_y_cls = self.train_y_cls.astype(np.int64)
-        self.test_y_cls = self.test_y_cls.astype(np.int64)
+                 shuffle_per_epoch, crop_size,
+                 image_preprocessing):
+        self.train_x, self.train_y_int, self.test_x, self.test_y_int = self.__load_data()
+        self.train_y_int = self.train_y_int.astype(np.int64)
+        self.test_y_int = self.test_y_int.astype(np.int64)
+        self._label_encoder = self.__init_label_encoder()
+        self.train_y_cls = self.encode_classes(self.train_y_int)
+        self.test_y_cls = self.encode_classes(self.test_y_int)
         self._batch_size = batch_size
         self._shuffle_per_epoch = shuffle_per_epoch
         self.n_train_batches = self.train_x.shape[0]//self._batch_size
         self.n_test_batches = self.test_x.shape[0]//self._batch_size
         self.original_image_shape = self.return_original_image_shape()
+        self._img_size_cropped = crop_size
+        self._num_channels = self.return_num_channels()
 
-        self._normalize_data = normalize_data
-        if self._normalize_data:
+        if normalize_data:
             self.__normalize_images()
 
-        self._flatten_images = flatten_images
-        if self._flatten_images:
+        if image_preprocessing:
+            self.train_x, self.test_x = self.__apply_pre_processing()
+
+        if flatten_images:
             self.__flatten_sets()
 
-        self._one_hot_encoding = one_hot_encoding
-        if self._one_hot_encoding:
+        if one_hot_encoding:
             self.train_y, self.test_y = self.__one_hot_encoding()
 
     def __iter__(self):
@@ -54,7 +61,7 @@ class CIFAR10:
         '''
         Return the number of classes present in the dataset.
         '''
-        unique_labels = np.unique(self.test_y_cls)
+        unique_labels = np.unique(self.test_y_int)
         num_classes = unique_labels.shape[0]
 
         return num_classes
@@ -66,6 +73,15 @@ class CIFAR10:
         random_sample = self.test_x[0]
 
         return (random_sample.shape[0], random_sample.shape[1])
+
+    def return_num_channels(self):
+        '''
+        Return the number of channels (colours) of the
+        dataset.
+        '''
+        random_sample = self.test_x[0]
+
+        return random_sample.shape[-1]
 
     def return_input_shape(self):
         '''
@@ -84,7 +100,7 @@ class CIFAR10:
         train_x, train_y = train_set
         test_x, test_y = test_set
 
-        return train_x, train_y, test_x, test_y
+        return train_x, train_y.flatten(), test_x, test_y.flatten()
 
     def __normalize_images(self):
         '''
@@ -97,10 +113,32 @@ class CIFAR10:
         '''
         Retrieve the one_hot encodings from int labels.
         '''
-        train_y = tf.keras.utils.to_categorical(self.train_y_cls)
-        test_y = tf.keras.utils.to_categorical(self.test_y_cls)
+        train_y = tf.keras.utils.to_categorical(self.train_y_int)
+        test_y = tf.keras.utils.to_categorical(self.test_y_int)
 
         return train_y, test_y
+
+    def __init_label_encoder(self):
+        '''
+        Initialise the label encoder and fit to classes.
+        '''
+        # Existing classes
+        classes = ['airplane', 'automobile', 'bird', 'cat', 'deer',
+                   'dog', 'frog', 'horse', 'ship', 'truck']
+        # Fit classes to encoder.
+        label_encoder = LabelEncoder()
+        label_encoder.fit(classes)
+
+        return label_encoder
+
+    def encode_classes(self, data):
+        '''
+        Encode integers to class strings.
+        '''
+
+        encoded_data = self._label_encoder.inverse_transform(data)
+
+        return encoded_data
 
     def __flatten_sets(self):
         '''
@@ -112,3 +150,43 @@ class CIFAR10:
         self.test_x = np.reshape(self.test_x,
                                  [self.test_x.shape[0],
                                   self.test_x.shape[1]*self.test_x.shape[2]])
+
+    def __pre_process_image(self, image, training):
+        '''
+        Perform a random pre-processing on a single
+        image in order to make the system more robust
+        to intricacies.
+        '''
+        # Randomly crop the image
+        if training:
+            image = tf.random_crop(image, size=[self._img_size_cropped,
+                                                self._img_size_cropped,
+                                                self._num_channels])
+            # Randomly flip the image
+            image = tf.image.random_flip_left_right(image)
+            # Randomly adjust aspects of the image
+            image = tf.image.random_hue(image, max_delta=0.05)
+            image = tf.image.random_contrast(image, lower=0.3, upper=1.0)
+            image = tf.image.random_brightness(image, max_delta=0.2)
+            image = tf.image.random_saturation(image, lower=0.0, upper=2.0)
+            # Limit the pixel values
+            image = tf.minimum(image, 1.0)
+            image = tf.maximum(image, 1.0)
+
+        else:
+            image = tf.image.resize_image_with_crop_or_pad(image,
+                                                           target_height=self._img_size_cropped,
+                                                           target_width=self._img_size_cropped)
+
+        return image
+
+    def __apply_pre_processing(self):
+        '''
+        Apply image preprocessing to train set.
+        '''
+        train_x = tf.map_fn(lambda image: self.__pre_process_image(image, True),
+                            self.train_x)
+        test_x = tf.map_fn(lambda image: self.__pre_process_image(image, False),
+                           self.test_x)
+
+        return train_x, test_x

@@ -9,6 +9,18 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
+def find_wrong_predictions_cifar(labels, predictions):
+    '''
+    Find the instances of the set where the system has made a wrong
+    prediction and return both the actual image and the wrong prediction.
+    '''
+    wrong_indeces = np.where(labels != predictions)[0]
+
+    wrong_labels = predictions[wrong_indeces]
+    correct_labels = labels[wrong_indeces]
+
+    return wrong_indeces, wrong_labels, correct_labels
+
 def find_wrong_predictions(labels, predictions, images):
     '''
     Find the instances of the set where the system has made a wrong
@@ -22,7 +34,7 @@ def find_wrong_predictions(labels, predictions, images):
 
     return wrong_indeces, wrong_images, wrong_labels, correct_labels
 
-def plot_images(images, y_pred, logits, cls_true, cls_pred, img_shape):
+def plot_images(images, y_pred, logits, cls_true, cls_pred, img_shape, reshape=True):
     '''
     Plot some of the images from the dataset.
     '''
@@ -33,7 +45,10 @@ def plot_images(images, y_pred, logits, cls_true, cls_pred, img_shape):
     # First print the images
     for i, subfig in enumerate(axes[:, 0]):
         # Plot image
-        subfig.imshow(images[i].reshape(img_shape), cmap='binary', aspect='auto')
+        if reshape:
+            subfig.imshow(images[i].reshape(img_shape), cmap='binary', aspect='auto')
+        else:
+            subfig.imshow(images[i])
         # Show true and predicted classes
         xlabel = "True: {}, Pred: {}".format(cls_true[i], cls_pred[i])
         subfig.set_xlabel(xlabel)
