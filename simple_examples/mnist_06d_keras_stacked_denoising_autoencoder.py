@@ -89,8 +89,8 @@ def autoencoder_layer(input_shape, layer_size, target_data,
 
 def main(_):
     '''
-    Main body of code for creating a two-layer convolutional neural
-    network, with max pooling, flatten dense layer and softmax output.
+    Main body of code for creating a deep denoising autoencoder
+    network, for performing deep reconstruction of a noisy dataset.
     '''
     # Import data
     mnist = MNIST(batch_size=FLAGS.batch_size, normalize_data=True,
