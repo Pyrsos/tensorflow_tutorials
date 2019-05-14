@@ -1,22 +1,18 @@
 '''
-Example script for constructing a 3-layer deep denoising autoencoder.
+Example script for constructing a 3-layer deep denoising convolutional autoencoder.
 '''
 from absl import flags
+import matplotlib
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from dataset_utilities.mnist import MNIST
 
-flags.DEFINE_integer("autoencoder1_size", 500, help="Size of the autoencoder hidden layer")
-flags.DEFINE_integer("autoencoder2_size", 200, help="Size of the autoencoder hidden layer")
-flags.DEFINE_integer("autoencoder3_size", 100, help="Size of the autoencoder hidden layer")
-flags.DEFINE_float("corruption_level_1", 0.5, help="Percentage of noise used to corrupt input data")
-flags.DEFINE_float("corruption_level_2", 0.4, help="Percentage of noise used to corrupt input data")
-flags.DEFINE_float("corruption_level_3", 0.3, help="Percentage of noise used to corrupt input data")
 flags.DEFINE_integer("batch_size", 100, help="Batch size")
-flags.DEFINE_integer("pretraining_epochs", 5, help="Number of epochs")
-flags.DEFINE_integer("finetuning_epochs", 15, help="Number of epochs")
+flags.DEFINE_integer("epochs", 15, help="Number of epochs")
 flags.DEFINE_float("learning_rate", 0.001, help="Learning rate")
+flags.DEFINE_float("corruption_level", 0.4, help="Learning rate")
 
 FLAGS = flags.FLAGS
 
@@ -48,48 +44,66 @@ def add_noise(input_data, noise_factor):
     variable.
     '''
     # Add noise to the target data based on the noise factor input.
-    noise = np.random.binomial(1, 1-noise_factor, input_data.shape)
-    noisy_data = input_data * noise
+    # noise = np.random.binomial(1, 1-noise_factor, input_data.shape)
+    noise = noise_factor * np.random.normal(loc=0.0, scale=1.0, size=input_data.shape)
+    noisy_data = input_data + noise
+    # Adding noise might cause some values to surpass 0 and 1 values,
+    # in which case we have to clip these.
+    noisy_data = np.clip(noisy_data, 0., 1.)
 
     return noisy_data
 
-def autoencoder_layer(input_shape, layer_size, target_data,
-                      noise_rate, encoder_activation='relu',
-                      decoder_activation='sigmoid', optimizer='adam',
-                      loss='binary_crossentropy'):
+def encoder(network_input):
     '''
-    Build and train a single autoencoder layer using keras.
+    The encoder part of the network, using a standard CNN format
+    with convolutional layers followed by max pooling.
     '''
-    input_data = add_noise(target_data, noise_rate)
-    # Build the autoencoder
-    layer_input = tf.keras.layers.Input(shape=(input_shape, ))
-    encoded_input = tf.keras.layers.Input(shape=(layer_size, ))
-    # Encoder and decoder transformation
-    layer_encoded = tf.keras.layers.Dense(layer_size, activation=encoder_activation)
-    layer_decoded = tf.keras.layers.Dense(input_shape, activation=decoder_activation)
+    conv1 = tf.keras.layers.Conv2D(
+        16, (3, 3), activation='relu',
+        padding='same')(network_input)
+    max_pool1 = tf.keras.layers.MaxPooling2D(
+        (2, 2), padding='same')(conv1)
+    conv2 = tf.keras.layers.Conv2D(
+        8, (3, 3), activation='relu',
+        padding='same')(max_pool1)
+    max_pool2 = tf.keras.layers.MaxPooling2D(
+        (2, 2), padding='same')(conv2)
+    conv3 = tf.keras.layers.Conv2D(
+        8, (3, 3), activation='relu',
+        padding='same')(max_pool2)
+    encoded = tf.keras.layers.MaxPooling2D(
+        (2, 2), padding='same')(conv3)
 
-    # Different models for the encoder and decoder sides
-    layer_encoder = tf.keras.models.Model(
-        inputs=layer_input, outputs=layer_encoded(layer_input))
-    layer_decoder = tf.keras.models.Model(
-        inputs=encoded_input, outputs=layer_decoded(encoded_input))
-    autoencoder = tf.keras.models.Model(
-        inputs=layer_input, outputs=layer_decoded(layer_encoded(layer_input)))
-    # Training only on the decoder
-    autoencoder.compile(optimizer=optimizer, loss=loss)
-    autoencoder.fit(input_data, target_data,
-                    epochs=FLAGS.pretraining_epochs,
-                    batch_size=FLAGS.batch_size,
-                    shuffle=True)
-    # Retrieve the output of the encoded data
-    layer_encoded_data = layer_encoder.predict(input_data,
-                                               batch_size=FLAGS.batch_size)
+    return encoded
 
-    return layer_input, layer_encoder, layer_decoder, layer_encoded_data
+def decoder(encoder_input):
+    '''
+    The decoder part of the network, using a reverse structure to the
+    encoder, comprising of convolutional layers and upsamling.
+    '''
+    conv1 = tf.keras.layers.Conv2D(
+        8, (3, 3), activation='relu',
+        padding='same')(encoder_input)
+    upsampling_1 = tf.keras.layers.UpSampling2D(
+        (2, 2))(conv1)
+    conv2 = tf.keras.layers.Conv2D(
+        8, (3, 3), activation='relu',
+        padding='same')(upsampling_1)
+    upsampling_2 = tf.keras.layers.UpSampling2D(
+        (2, 2))(conv2)
+    conv3 = tf.keras.layers.Conv2D(
+        16, (3, 3), activation='relu')(upsampling_2)
+    upsampling_3 = tf.keras.layers.UpSampling2D(
+        (2, 2))(conv3)
+    decoded = tf.keras.layers.Conv2D(
+        1, (3, 3), activation='sigmoid',
+        padding='same')(upsampling_3)
+
+    return decoded
 
 def main(_):
     '''
-    Main body of code for creating a deep denoising autoencoder
+    Main body of code for creating a deep denoising convolutional autoencoder
     network, for performing deep reconstruction of a noisy dataset.
     '''
     # Import data
@@ -99,110 +113,29 @@ def main(_):
 
     # Data information
     img_size = mnist.original_image_shape
-    input_img = tf.keras.layers.Input(shape=(28, 28, 1))
-    x = tf.keras.layers.Conv2D(
-        16, (3, 3), activation='relu',
-        padding='same')(input_img)
-    x = tf.keras.layers.MaxPooling2D(
-        (2, 2), padding='same')(x)
-    x = tf.keras.layers.Conv2D(
-        8, (3, 3), activation='relu',
-        padding='same')(x)
-    x = tf.keras.layers.MaxPooling2D(
-        (2, 2), padding='same')(x)
-    x = tf.keras.layers.Conv2D(
-        8, (3, 3), activation='relu',
-        padding='same')(x)
-    encoded = tf.keras.layers.MaxPooling2D(
-        (2, 2), padding='same')(x)
-
-    x = tf.keras.layers.Conv2D(
-        8, (3, 3), activation='relu',
-        padding='same')(encoded)
-    x = tf.keras.layers.UpSampling2D(
-        (2, 2))(x)
-    x = tf.keras.layers.Conv2D(
-        8, (3, 3), activation='relu',
-        padding='same')(x)
-    x = tf.keras.layers.UpSampling2D(
-        (2, 2))(x)
-    x = tf.keras.layers.Conv2D(
-        16, (3, 3), activation='relu')(x)
-    x = tf.keras.layers.UpSampling2D(
-        (2, 2))(x)
-    decoded = tf.keras.layers.Conv2D(
-        1, (3, 3), activation='sigmoid',
-        padding='same')(x)
-
+    input_img = tf.keras.layers.Input(shape=(img_size[0], img_size[1], 1))
+    encoded = encoder(input_img)
+    decoded = decoder(encoded)
+    # Define autoencoder input/output and optimization
     autoencoder = tf.keras.models.Model(input_img, decoded)
     autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
 
-    train_x = mnist.train_x.reshape(len(mnist.train_x), 28, 28, 1)
-    test_x = mnist.test_x.reshape(len(mnist.test_x), 28, 28, 1)
-
-    autoencoder.fit(train_x, train_x,
-                    epochs=1,
+    # Reshape the data for the network
+    train_x = mnist.train_x.reshape(len(mnist.train_x), img_size[0], img_size[1], 1)
+    test_x = mnist.test_x.reshape(len(mnist.test_x), img_size[0], img_size[1], 1)
+    # Add noise to the data
+    noisy_train_x = add_noise(train_x, FLAGS.corruption_level)
+    noisy_test_x = add_noise(test_x, FLAGS.corruption_level)
+    # Train the model
+    autoencoder.fit(noisy_train_x, train_x,
+                    epochs=FLAGS.epochs,
                     batch_size=FLAGS.batch_size,
                     shuffle=True,
                     validation_data=(test_x, test_x))
 
     # Retrieve the reconstructions and plot
-    reconstructions = autoencoder.predict(test_x,
-                                          batch_size=FLAGS.batch_size)
-    plotting_function(test_x, reconstructions)
-
-    # # First layer
-    # layer1_input, layer1_encoder, layer1_decoder, \
-    # layer1_encoded_data = autoencoder_layer(
-    #     input_shape=img_size,
-    #     layer_size=FLAGS.autoencoder1_size,
-    #     target_data=mnist.train_x,
-    #     noise_rate=FLAGS.corruption_level_1)
-
-    # # Second layer
-    # layer2_input, layer2_encoder, layer2_decoder, \
-    # layer2_encoded_data = autoencoder_layer(
-    #     input_shape=FLAGS.autoencoder1_size,
-    #     layer_size=FLAGS.autoencoder2_size,
-    #     target_data=layer1_encoded_data,
-    #     noise_rate=FLAGS.corruption_level_2)
-
-    # # Third layer
-    # layer3_input, layer3_encoder, layer3_decoder, \
-    # layer3_encoded_data = autoencoder_layer(
-    #     input_shape=FLAGS.autoencoder2_size,
-    #     layer_size=FLAGS.autoencoder3_size,
-    #     target_data=layer2_encoded_data,
-    #     noise_rate=FLAGS.corruption_level_3)
-
-    # # Deep reconstruction
-    # # Connect the various layers together
-    # reconstruction_input = layer1_input
-    # first_layer_encoder = layer1_encoder(reconstruction_input)
-    # second_layer_encoder = layer2_encoder(first_layer_encoder)
-    # third_layer_encoder = layer3_encoder(second_layer_encoder)
-    # third_layer_decoder = layer3_decoder(third_layer_encoder)
-    # second_layer_decoder = layer2_decoder(third_layer_decoder)
-    # first_layer_decoder = layer1_decoder(second_layer_decoder)
-
-    # # Define the mode with inputs and outputs
-    # reconstruction_model = tf.keras.models.Model(inputs=reconstruction_input,
-    #                                              outputs=first_layer_decoder)
-
-    # # Corrupt the input and output data
-    # corrupted_train_data = add_noise(mnist.train_x, FLAGS.corruption_level_1)
-    # corrupted_test_data = add_noise(mnist.test_x, FLAGS.corruption_level_1)
-
-    # # Optimize and fit the model
-    # reconstruction_model.compile(optimizer='adam',
-    #                              loss='binary_crossentropy')
-    # reconstruction_model.fit(x=corrupted_train_data, y=mnist.train_x,
-    #                          epochs=FLAGS.finetuning_epochs, batch_size=FLAGS.batch_size,
-    #                          shuffle=True, validation_data=(corrupted_test_data, mnist.test_x))
-    # # Retrieve the reconstructions and plot
-    # reconstructions = reconstruction_model.predict(corrupted_test_data,
-    #                                                batch_size=FLAGS.batch_size)
-    # plotting_function(corrupted_test_data, reconstructions)
+    reconstructions = autoencoder.predict(noisy_test_x, batch_size=FLAGS.batch_size)
+    plotting_function(noisy_test_x, reconstructions)
 
 if __name__ == '__main__':
     tf.app.run()
