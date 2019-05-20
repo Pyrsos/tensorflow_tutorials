@@ -152,7 +152,8 @@ class AutoencoderLayer():
     '''
     def __init__(self, input_data, num_inputs, num_outputs,
                  encoder_activation=tf.nn.relu,
-                 decoder_activation=tf.nn.sigmoid):
+                 decoder_activation=tf.nn.sigmoid,
+                 activate=True):
         self.num_inputs = num_inputs
         self.num_outputs = num_outputs
         self._input = input_data
@@ -161,6 +162,7 @@ class AutoencoderLayer():
         self.weights, self._biases, \
         self.weights_prime, self._biases_prime = self.__init_weights(num_inputs,
                                                                      num_outputs)
+        self._activate = activate
         self._encoder_activation = encoder_activation
         self._decoder_activation = decoder_activation
         self.encoded_input = self.encoder(self.corrupted_input)
@@ -202,7 +204,10 @@ class AutoencoderLayer():
         of the input data.
         '''
         linear_activation = tf.matmul(input_x, self.weights) + self._biases
-        encoded_input = self._encoder_activation(linear_activation)
+        if self._activate:
+            encoded_input = self._encoder_activation(linear_activation)
+        else:
+            encoded_input = linear_activation
 
         return encoded_input
 
@@ -212,7 +217,10 @@ class AutoencoderLayer():
         of the encoder.
         '''
         linear_activation = tf.matmul(input_x, self.weights_prime) + self._biases_prime
-        decoded_input = self._decoder_activation(linear_activation)
+        if self._activate:
+            decoded_input = self._decoder_activation(linear_activation)
+        else:
+            decoded_input = linear_activation
 
         return decoded_input
 
